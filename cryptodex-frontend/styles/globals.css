@@ -1,0 +1,2239 @@
+/*
+ * Inter and Space Grotesk are SELF-HOSTED - see public/vendor/fonts/fonts.css.
+ *
+ * This line used to be an `@import url("https://fonts.googleapis.com/css2?...")`,
+ * which is the quietest way there is to add two third-party origins to every
+ * page in the app: nothing in _app.tsx or _document.tsx mentions them, so
+ * inspecting the document shell finds nothing, and the browser only reaches
+ * fonts.googleapis.com (then fonts.gstatic.com, which the response points it
+ * at) once the CSS engine parses this file. A real Chromium load of /2fa - the
+ * page that then rendered the TOTP secret and the otpauth URI into the DOM -
+ * was what caught it. That page and its Playwright guard both went with the 2FA
+ * surface, so nothing tests this any more: the rule below is the whole
+ * protection, and re-adding an @import here would not be caught.
+ *
+ * The rules are loaded through <link> in pages/_app.tsx rather than @import-ed
+ * here, because an @import blocks rendering until it has been fetched AND is
+ * serialised after this file - a <link> is requested in parallel with it.
+ */
+
+/* Custom font - Rhaogen */
+@font-face {
+  font-family: 'Rhaogen';
+  src: url('/assets/fonts/Rhaogen.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Headline styles with Rhaogen font */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: 'Rhaogen', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* Default dark theme CSS variables */
+:root {
+  --black: #000000;
+  --black_transparent: rgb(0 0 0 / 40%);
+  --box_border: #1a1919;
+  --box_border_hvr: #292826;
+  --bs-body-bg: var(--black) !important;
+  --btn-hover-border-color: #1d94ff;
+  --btn_border: rgb(41, 39, 39);
+  --btn_hover-bg: rgb(29, 148, 255);
+  --btn_linear: #070707;
+  --cancel_btn_clt: "#993548";
+  --dark_red: #f61a1a;
+  --green: #14bb7b;
+  --green_transparent: hsl(157deg 81% 41% / 20%);
+  --grey: #6d6d6d;
+  --order_tic: #080808;
+  --qrcode: #040404;
+  --red: #ef5350;
+  --red_transparent: rgb(246 26 26 / 20%);
+  --spot_headers: #030303;
+  --table_border: #17181a;
+  --table_color: #020202;
+  --table_text: #e7f3f9;
+  --text-linear: linear-gradient(72deg, #fff 0%, #1d94ff 100%);
+  --text_black: #060606;
+  --text_grey: #d0d0d0;
+  --text_white: #ffffff;
+  --yellow: #1d94ff;
+  --btn-color-text: #1d94ff;
+  --text_grey1: #999;
+  --green_transparent1: rgb(42, 116, 107);
+  --red_transparent1: rgb(153, 53, 72);
+  --yellow_shade: rgba(202, 201, 200, 0.5),
+    inset -2px -2px 4px 0px rgba(29, 148, 255, 0.5),
+    0px 0px 250px 0px rgba(29, 148, 255, 0.35),
+    inset 0px 0px 150px 0px rgba(29, 148, 255, 0.1);
+  --slider1: #4e4e4e;
+}
+
+#react-select-2-input {
+  display: none !important;
+}
+
+.market-icon img {
+  border-radius: 50%;
+}
+
+#formFile {
+  top: 100px;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+body {
+  color: var(--text_white) !important;
+  font-family: "Inter", sans-serif !important;
+  background: #070707;
+  font-size: 14px;
+}
+
+/*
+ * DECORATION MUST NOT MAKE THE PAGE SCROLL SIDEWAYS.
+ * ==================================================
+ *
+ * MEASURED on the landing page in a 390px-wide Chromium: documentElement
+ * scrollWidth 639 against innerWidth 390. Every pixel of it was ornament, and
+ * none of it was content anyone could read by scrolling to it:
+ *
+ *   - `.discover_img::before`, a 500x500 `filter: blur(250px)` glow positioned
+ *     `left: 30%` with no right-hand constraint. On a 390px viewport that is
+ *     117 + 500 = 617px, which is exactly the overflow that was measured;
+ *   - AOS's initial state. `data-aos="flip-up"` sets a 3D rotateX on elements
+ *     that have not been scrolled into view yet, and a rotated box with
+ *     perspective is WIDER than its unrotated self - the columns measured
+ *     -16px to 406px while sitting still, before any animation ran.
+ *
+ * A horizontal scrollbar on a phone is not a cosmetic problem: every vertical
+ * swipe that is a few degrees off drags the page sideways, and the reader has
+ * to fight the page to read it.
+ *
+ * `overflow-x: clip` rather than `hidden`, deliberately. `hidden` on the root
+ * makes the viewport a scroll container, which silently breaks
+ * `position: sticky` everywhere in the app; `clip` clips without creating one.
+ * Browsers that do not know `clip` ignore the declaration and get today's
+ * behaviour, so this cannot make anything worse - which is why the SOURCE of
+ * the overflow is fixed as well (see `.discover_home` in common.module.css)
+ * rather than being papered over here.
+ */
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+.w-100 {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.faq-content .accordion-body {
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 10px;
+}
+.accordion-header {
+  background: #3d2f23 !important;
+  padding-left: 15px !important;
+}
+
+.VerifyBadge {
+  display: flex;
+  border: 1px solid #0eb876;
+  align-items: center;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  border-radius: 5px;
+  padding: 7px 12px;
+  flex-direction: row-reverse;
+}
+.VerifyBadge span {
+  margin: 0 0px 0 10px !important;
+  color: #0eb876 !important;
+}
+.notVerifyBadge {
+  display: flex;
+  border: 1px solid #fe777b;
+  align-items: center;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  border-radius: 5px;
+  padding: 7px 12px;
+  flex-direction: row-reverse;
+}
+.notVerifyBadge span {
+  margin: 0 0px 0 10px !important;
+  color: #fe777b !important;
+}
+/* Custom Scrollbar */
+*::-webkit-scrollbar {
+  height: 3px;
+  width: 3px;
+}
+
+*::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--btn_hover-bg);
+}
+
+.custom_toaster {
+  background: var(--box_border);
+  width: fit-content;
+}
+
+.navbar-brand {
+  outline: 0 !important;
+  margin-right: 0 !important;
+}
+
+.navbar-toggler:focus {
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* Minimal navbar - TradingView Extended style */
+.main_navbar {
+  height: 56px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0;
+}
+
+/* Add top padding to body to prevent content being hidden behind fixed navbar */
+body {
+  padding-top: 56px;
+}
+
+/*
+ * THE HEIGHT THE FOOTER USED TO OCCUPY.
+ *
+ * The footer was the last element on every page, so it covered whatever space
+ * the page's own content did not. With it deleted, a short page (the login and
+ * register screens, whose background video is sized to their section) left a
+ * bare strip of body background beneath it.
+ *
+ * A column here lets a page opt into filling that space with `flex: 1` instead
+ * of guessing at a height. It cannot be a fixed `calc()`: the banner above is
+ * 31px on desktop but wraps to 49px at 390px wide, so any constant is wrong on
+ * one of them.
+ *
+ * Pages that do not opt in keep their natural height, with ONE measured
+ * exception. A flex item establishes its own formatting context, so a bottom
+ * margin on a page root no longer collapses out through #__next and body. On
+ * /spot below 768px that changes the layout by exactly +80px: the
+ * `margin-bottom: 80px` on `.trade_wrapper_mobile` (Spot.module.css) exists to
+ * let the last row scroll clear of the fixed order bar, and it had been
+ * collapsing away entirely - so the content it was reserving space for sat
+ * underneath that bar. It now does what it was written to do. Measured at
+ * 390x844: document 853 against a 844 viewport, the bar 70px at the bottom.
+ * Recorded here because it is a real behavioural change on the trading screen
+ * from a commit about the footer, even though it is a repair rather than a
+ * regression.
+ */
+#__next {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 56px);
+}
+
+/* Persistent paper-trading disclosure strip */
+/*
+ * TOASTS START BELOW THE CHROME.
+ *
+ * react-toastify pins its top-right container 1em from the top, which put a
+ * toast across the fixed 56px navbar and the disclosure strip beneath it. That
+ * strip is the one line on a paper venue that should never be covered.
+ *
+ * Two values because the strip has two heights: its text is one line at 31px on
+ * desktop and wraps to 49px below 768px, which is the same pair the login
+ * background had to account for. Navbar 56 + strip + 8px of air.
+ */
+.toast-below-banner.Toastify__toast-container--top-right {
+  top: 95px;
+}
+
+@media (max-width: 767px) {
+  .toast-below-banner.Toastify__toast-container--top-right {
+    top: 113px;
+  }
+}
+
+.paper_trading_banner {
+  background: rgba(29, 148, 255, 0.12);
+  border-bottom: 1px solid rgba(29, 148, 255, 0.35);
+  color: #1d94ff;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  text-align: center;
+  padding: 6px 12px;
+}
+
+/* Navbar container with full width and three-section layout */
+.main_navbar .navbar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 20px;
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Left section: Nav links */
+.main_navbar .navbar-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+/* Center section: Logo - perfectly centered */
+.main_navbar .navbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 56px;
+}
+
+.main_navbar .navbar-center .navbar-brand {
+  margin: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+}
+
+.main_navbar .navbar-center .navbar-brand img {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
+}
+
+.main_navbar .navbar-center .navbar-brand a {
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.main_navbar .navbar-center .navbar-brand a:hover {
+  opacity: 1;
+}
+
+/* Right section: Theme toggle + auth buttons */
+.main_navbar .navbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Combined icons container (social + profile) */
+.navbar-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Profile dropdown toggle button */
+.navbar-profile-toggle {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 6px 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  transition: all 0.2s ease !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.navbar-profile-toggle:hover,
+.navbar-profile-toggle.show {
+  background: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.navbar-profile-toggle svg {
+  transition: all 0.2s ease;
+}
+
+.navbar-profile-toggle:hover svg {
+  stroke: #fff !important;
+}
+
+/* Hide the default Bootstrap dropdown arrow */
+.navbar-profile-toggle::after {
+  display: none !important;
+}
+
+/* Profile dropdown menu */
+.main_navbar .dropdown-menu {
+  background: #0a0a0a !important;
+  border: 1px solid #17181a !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+  padding: 0 !important;
+  margin-top: 8px !important;
+  min-width: 240px !important;
+}
+
+.main_navbar .dropdown-item {
+  color: var(--text_grey1) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  padding: 10px 16px !important;
+  border-radius: 0 !important;
+  transition: all 0.15s ease !important;
+  border-bottom: 1px solid #17181a !important;
+}
+
+.main_navbar .dropdown-item:last-child {
+  border-bottom: none !important;
+}
+
+.main_navbar .dropdown-item:hover {
+  background: #0f1012 !important;
+  color: var(--btn_hover-bg) !important;
+}
+
+.main_navbar .dropdownmenu_scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.main_navbar .dropdownmenu_scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.main_navbar .dropdownmenu_scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main_navbar .dropdownmenu_scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+/* Hide the default navbar container on desktop */
+.main_navbar > .container {
+  display: none;
+}
+
+/* Show custom layout on desktop */
+@media (min-width: 992px) {
+  .main_navbar .navbar-content {
+    display: flex;
+  }
+  .main_navbar .navbar-collapse {
+    display: none !important;
+  }
+  .main_navbar .navbar-toggler {
+    display: none;
+  }
+}
+
+/* Mobile: keep original layout */
+@media (max-width: 991px) {
+  .main_navbar .navbar-content {
+    display: none;
+  }
+  /* The bar itself is `position: fixed` and exactly 56px tall, but this
+     container used to be `display: block`, so the brand (56px) and the
+     hamburger (40px) stacked to 96px inside it. The hamburger therefore
+     rendered 40px BELOW the bar it belongs to, on top of the paper-trading
+     disclosure strip that follows the 56px body padding — two pieces of chrome
+     drawn over each other at every width up to 991px. Laying the container out
+     as a single 56px row puts the hamburger back inside the bar. */
+  .main_navbar > .container {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  body {
+    padding-top: 56px;
+  }
+  .main_navbar .navbar-brand {
+    display: flex;
+    align-items: center;
+    height: 56px;
+  }
+  .main_navbar .navbar-brand img {
+    height: 22px;
+    width: auto;
+    object-fit: contain;
+  }
+}
+
+/* Desktop navbar links styling */
+.navbar-link {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  margin: 0 8px;
+  padding: 8px 0;
+  position: relative;
+  transition: color 0.15s ease;
+  text-decoration: none;
+}
+
+.navbar-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+  transition: width 0.2s ease;
+}
+
+.navbar-link:hover::after,
+.navbar-link.active::after {
+  width: 100%;
+}
+
+.navbar-link:hover {
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+/* Register button - permanent underline */
+.navbar-link.navbar-link-register::after {
+  width: 100%;
+}
+
+.fixed {
+  position: fixed !important;
+  top: 0;
+  width: 100%;
+  z-index: 1200;
+}
+
+.main_navbar.scrolled {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.offcan_custom .offcanvas-body {
+  padding-left: 0px !important;
+  position: relative;
+  gap: 20px;
+}
+
+.balanceTitle {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.balance-card span:first-child {
+  font-size: 18px !important;
+}
+
+.balance-card span:last-child {
+  font-size: 14px !important;
+  color: #eab385;
+}
+
+/* .offcan_custom .offcanvas-body::before {
+    background: #282d35;
+    bottom: 0;
+    content: "";
+    height: 80%;
+    left: 0;
+    margin: auto 0;
+    position: absolute;
+    top: 0;
+    width: 1px;
+  } */
+/* Nav links - minimal premium styling */
+.offcan_custom .nav-link {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  margin: 0 16px;
+  padding: 8px 0;
+  position: relative;
+  transition: color 0.15s ease;
+}
+
+.offcan_custom .nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+  transition: width 0.2s ease;
+}
+
+.offcan_custom .nav-link:hover::after,
+.offcan_custom .nav-link.active::after {
+  width: 100%;
+}
+
+.offcan_custom .nav-item {
+  color: var(--text_white) !important;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+}
+
+.offcan_custom .nav-item sup {
+  color: var(--yellow);
+  font-size: 10px;
+}
+
+.offcan_custom .nav-link:hover,
+.offcan_custom .nav-link:active {
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.navbar-toggler-icon {
+  color: var(--text_white);
+  filter: invert(1) brightness(1.5);
+}
+
+.offcanvas-header .btn-close {
+  box-shadow: none !important;
+}
+
+.navbar-toggler {
+  padding-left: 0 !important;
+}
+
+.offcan_custom {
+  background: var(--black) !important;
+  z-index: 1400 !important;
+}
+
+.offcan_custom .btn-close {
+  filter: invert(1);
+}
+
+.offcan_custom .nav-link {
+  color: var(--text_white) !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: fit-content;
+}
+
+.block-span span {
+  display: block;
+}
+
+.offcan_custom .butn {
+  display: block;
+  text-align: center;
+}
+
+.offcan_custom .copy {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.offcan_custom .copy img {
+  cursor: pointer;
+  margin-left: 10px;
+  width: 12px;
+}
+
+.offcan_custom .dropdown-toggle {
+  background: transparent !important;
+  border: 0;
+  padding: 0;
+}
+
+.offcan_custom .border-bottom {
+  border-color: var(--box_border) !important;
+}
+
+.offcan_custom .dropdown-item {
+  background: transparent !important;
+  color: var(--text_white);
+}
+
+.offcan_custom .dropdown-item:hover {
+  background: var(--black_transparent) !important;
+  color: #eab385;
+}
+
+.offcan_custom .dropdown-menu {
+  border: 1px solid var(--box_border);
+  /* padding: 10px 15px; */
+  background: #0f0f10;
+}
+
+.offcan_custom .profile .dropdown {
+  display: flex;
+}
+
+/* .offcan_custom .profile .dropdown-toggle img {
+  border-radius: 50%;
+  height: 38px;
+  width: 38px;
+} */
+.offcan_custom .profile .dropdown-toggle::after {
+  display: none;
+}
+
+.offcan_custom .profile .dropdown-item {
+  display: flex;
+  flex-direction: column;
+  padding: 7px 15px;
+  font-size: 15px;
+  border-bottom: 1px solid var(--box_border);
+}
+
+/* .offcan_custom .profile .dropdown-item:first-child {
+  margin-top: 7px;
+} */
+
+.offcan_custom .profile .dropdown-item:last-child {
+  border-bottom: 0;
+}
+
+.offcan_custom .profile span {
+  padding-left: 15px;
+  font-size: 15px;
+}
+
+.offcan_custom .grey {
+  color: #dfdfdf;
+}
+
+.offcan_custom .ylw {
+  color: var(--yellow);
+}
+
+/* trending_pair */
+.tabs .nav {
+  border: 0;
+  margin-bottom: 40px;
+}
+
+.tabs .nav-item:not(:last-of-type) {
+  margin-right: 20px;
+}
+
+.tabs .nav-item button {
+  background: var(--black_transparent);
+  border: 1px solid var(--box_border);
+  border-radius: 10px;
+  color: var(--grey);
+  font-family: "Inter", sans-serif !important;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 8px 30px;
+}
+
+.tabs .nav-item button.active,
+.tabs .nav-item button:hover {
+  background: var(--black_transparent);
+  border: 1px solid var(--yellow);
+  box-shadow: 0 0 33px 5px var(--yellow_shade);
+  color: var(--text_white) !important;
+  transition: 0.5s;
+}
+
+.slick-prev:before,
+.slider .slick-next:before {
+  color: var(--grey) !important;
+}
+
+.slider .slick-prev:hover:before,
+.slider .slick-prev:focus:before,
+.slider .slick-next:hover:before,
+.slider .slick-next:focus:before {
+  color: var(--yellow) !important;
+}
+
+/* Template one Style */
+.primary_tab {
+  border-bottom: 1px solid #29292b;
+}
+
+.primary_tab .nav-item a.nav-link {
+  color: #9e9e9e;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 0;
+  text-align: center;
+  border-bottom: 2px solid transparent;
+}
+
+.primary_tab .nav-item + .nav-item {
+  margin-left: 20px;
+}
+
+.primary_tab .nav-item a.nav-link.active {
+  background: transparent !important;
+  color: #fff;
+  border-bottom: 2px solid #ffffff;
+}
+
+.primary_tab .place_order_select {
+  border: 0;
+  box-shadow: none !important;
+  color: var(--color-8);
+  font-size: var(--font-6);
+  font-weight: var(--font-medium);
+  padding: 0 40px 0 0;
+}
+
+.primary_tab.order-tab-compact .nav-item + .nav-item {
+  margin-left: 0px;
+}
+
+.primary_tab.order-tab-compact .nav-item a {
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 14px;
+  margin-right: 12px;
+}
+
+.primary_tab .place_order_select option {
+  color: var(--color-8);
+  font-size: var(--font-6);
+}
+
+.primary_tab .nav-item a.nav-link.active .place_order_select {
+  color: var(--yellow);
+}
+
+.primary_tab.primary_tab_line .nav-item a.nav-link {
+  border-radius: 0;
+}
+
+.primary_tab.primary_tab_line .nav-item a.nav-link.active {
+  border-bottom: 1px solid var(--color-3);
+  color: var(--red);
+}
+
+.primary_tab.primary_tab_button {
+  background-color: var(--color-6);
+  border-radius: var(--radius-5);
+}
+
+.primary_tab.primary_tab_button .nav-item a.nav-link {
+  height: 32px;
+  line-height: 16px;
+  position: relative;
+}
+
+.primary_tab.primary_tab_button .nav-item a.nav-link.active {
+  color: var(--color-1);
+}
+
+.primary_tab.primary_tab_button .nav-item a.nav-link.active.long_tab {
+  background: var(--color-5) !important;
+}
+
+.primary_tab.primary_tab_button .nav-item a.nav-link.active.short_tab {
+  background: var(--color-10) !important;
+}
+
+.primary_tab.primary_tab_button .nav-item a.nav-link.active.long_tab::after {
+  content: "";
+  height: 32px;
+  position: absolute;
+  right: -18px;
+  top: 0;
+  width: 25px;
+
+  /* background: url("../public/assets/images/long_tab_icon.png") no-repeat right
+     center; */
+}
+
+.primary_tab.primary_tab_button .nav-item a.nav-link.active.short_tab::after {
+  content: "";
+  height: 32px;
+  left: -18px;
+  position: absolute;
+  top: 0;
+  width: 25px;
+
+  /* background: url("../public/assets/images/short_tab_icon.png") no-repeat left
+     center; */
+}
+
+.primary_tab.primary_tab_marketlimit .nav-item {
+  margin-left: 0px;
+  margin-right: 15px;
+}
+
+.primary_tab.primary_tab_marketlimit .nav-item .nav-link {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 0px;
+  padding-right: 0px;
+  text-align: left;
+}
+
+.primary_tab.primary_tab_marketlimit {
+  border-bottom: 0 !important;
+}
+
+.primary_tab.primary_tab_marketlimit .nav-item a.nav-link {
+  border-bottom: 0 !important;
+}
+
+.primary_tab.primary_tab_marketlimit .nav-item a.nav-link.active {
+  border-bottom: 0 !important;
+}
+
+.tradingview-widget-copyright {
+  display: none;
+}
+
+.offcan_custom .dropdown-menu {
+  display: block;
+  width: 300px;
+  opacity: 0;
+  transform: translateY(50px) translateX(-80%);
+  transition: 0.5s ease all;
+  visibility: hidden;
+}
+
+.offcan_custom .dropdown-menu.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0px) translateX(-80%);
+  transition: 0.5s ease all;
+  visibility: visible;
+}
+
+.futer-history-right {
+  display: inline-flex;
+  align-items: center;
+  min-width: fit-content;
+  align-self: center;
+}
+
+.futer-history-right .form-check {
+  min-width: auto !important;
+  margin: 0 !important;
+}
+
+.futer-history-right .nav-link {
+  min-width: auto !important;
+  color: var(--text_grey);
+}
+
+/*
+ * THE ACCOUNT MENU IS AS TALL AS ITS ITEMS.
+ *
+ * A second, unscoped copy of this rule stood here setting `height: 350px`,
+ * which the scoped rule above (.main_navbar .dropdownmenu_scroll, max-height
+ * 300px) then clamped to exactly 300 - against four items totalling 163px, so
+ * the menu carried 137px of empty panel under "Log out". It grew emptier every
+ * time an entry was removed: Support Ticket went with the help surface, Account
+ * Activity with its page, and the box stayed the height of the menu it used to
+ * be.
+ *
+ * It also said `overflow-x` where the scoped rule says `overflow-y`, so the
+ * axis it scrolled was not the one that could overflow.
+ *
+ * The scoped rule already does the right thing on its own: shrink to content,
+ * scroll only if the menu ever outgrows 300px.
+ */
+
+.btn-primary {
+  background: #edbf96;
+  color: #070707;
+  border: 0;
+  padding: 5px 10px;
+  margin-left: 12px;
+  border-radius: 7px;
+}
+.btn-primary:hover,
+.btn-primary.active {
+  background: #edbf96;
+  color: #070707;
+}
+.offcan_custom
+  .dropdown-toggle:hover
+  + div
+  .offcan_custom
+  .dropdown-menu.show:hover {
+  display: block;
+  opacity: 1;
+  transform: translateY(0px) translateX(-80%);
+  transition: 0.5s ease all;
+  visibility: visible;
+}
+
+.offcanvas-backdrop.show {
+  backdrop-filter: blur(3px);
+  background: var(--black_transparent);
+  height: 100%;
+  opacity: 1 !important;
+  width: 100%;
+}
+
+.rc-slider-handle {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+.rc-slider-dot {
+  bottom: 0px !important;
+  height: 8px !important;
+  width: 8px !important;
+}
+
+/* .rc-slider-mark {
+  display: none;
+} */
+.form-select {
+  background: #070707 url("/assets/images/dropdown-arrow.png") no-repeat right
+    15px center;
+  border: 1px solid #070707 !important;
+  box-shadow: none !important;
+  color: var(--text_white) !important;
+  height: 52px;
+}
+
+.form-select option {
+  background: #070707;
+  color: var(--text_white);
+}
+
+.react-select__control,
+.react-select__control:hover,
+.react-select__control--is-focused {
+  background-color: #070707 !important;
+  border: 1px solid #070707 !important;
+  box-shadow: none !important;
+  color: var(--text_white);
+  padding: 2px;
+}
+
+.react-select__indicator-separator {
+  display: none;
+}
+
+.react-select__single-value {
+  color: var(--text_white) !important;
+}
+
+.react-select__menu-list {
+  background: #070707 !important;
+}
+
+.react-select__option:hover,
+.react-select__option:focus,
+.react-select__option:focus-visible {
+  background: var(--yellow_shade) !important;
+}
+
+.input-group-text i {
+  cursor: pointer;
+}
+
+.table-pagination .page-link {
+  background: transparent;
+  border-color: var(--box_border_hvr);
+  color: var(--text_white);
+}
+
+.table-pagination .page-link:focus {
+  box-shadow: none;
+}
+
+.table-pagination .page-link:hover {
+  background: var(--black_transparent);
+}
+
+.table-pagination .page-item.active > .page-link {
+  background: var(--yellow);
+  box-shadow: none;
+  color: var(--black);
+}
+
+.kycimg {
+  height: 60px !important;
+  width: unset !important;
+}
+
+.dwn_btn button {
+  box-shadow: none !important;
+}
+
+.dwn_btn .dropdown-menu {
+  height: 280px;
+  overflow-y: scroll;
+}
+
+.dwn_item {
+  white-space: unset;
+}
+
+.modal {
+  z-index: 5000;
+}
+
+.ScrollbarsCustom-TrackY {
+  background: var(--text_black) !important;
+  width: 2px !important;
+}
+
+.ScrollbarsCustom-ThumbY {
+  background: var(--yellow_shade) !important;
+}
+
+.react-datepicker-wrapper {
+  display: block !important;
+}
+
+.react-datepicker-wrapper .form-control {
+  border: 1px solid var(--box_border);
+  box-shadow: none !important;
+  color: var(--text_white) !important;
+  height: 46px;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.primary_inp {
+  background: var(--black) !important;
+  border: 1px solid var(--box_border) !important;
+  box-shadow: none !important;
+  color: var(--text_white) !important;
+  padding: 10px;
+}
+
+.form-control::placeholder {
+  color: var(--text_grey1);
+}
+
+.green_text,
+i.bi-hand-thumbs-up-fill.green_text::before {
+  color: var(--green) !important;
+}
+
+.red_text,
+.bi-hand-thumbs-down-fill.red_text::before {
+  color: var(--dark_red) !important;
+}
+
+.custom_pagination {
+  justify-content: flex-end;
+  margin-top: 30px;
+}
+
+.custom_pagination .page-link {
+  border-color: var(--box_border);
+  box-shadow: none !important;
+  color: var(--text_white);
+  font-size: 14px;
+}
+
+.custom_pagination .page-item.active .page-link,
+.custom_pagination .page-link:hover,
+.custom_pagination .page-link:focus {
+  background: var(--yellow) !important;
+  color: var(--black);
+}
+
+.country_box {
+  max-width: 100%;
+  width: 250px;
+}
+
+.country_box .react-select__control {
+  height: 46px;
+  min-height: 46px !important;
+}
+
+.fa-circle-xmark {
+  font-size: 20px;
+  left: 5px;
+  position: absolute;
+  top: -8px;
+}
+
+/* Toggle Theme */
+.theme-switcher {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.theme-switcher button {
+  background: transparent;
+  border: none;
+}
+
+.sun-icon {
+  color: #1d94ff;
+  font-size: 18px;
+}
+
+.moon-icon {
+  font-size: 16px;
+}
+
+.navbar_switch_mobile {
+  display: none;
+}
+
+.login_right h2 {
+  background: linear-gradient(
+    135.31deg,
+    rgb(255, 255, 255),
+    rgb(29, 148, 255),
+    rgb(29, 148, 255)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+  font-family: "Rhaogen", sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 32px;
+  display: inline-block;
+  margin-bottom: 30px;
+}
+
+.modal-title {
+  color: #1d94ff;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+
+.primary_tab_fullwidth .nav-item {
+  flex: 1;
+}
+
+.nodata {
+  margin-top: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.nodata h6 {
+  color: #9e9e9e;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.drop-item-label {
+  font-weight: 700;
+  padding: 5px 0;
+}
+
+.email-link.dropdown-item {
+  color: var(--btn_hover-bg) !important;
+}
+
+/* Dropdown item text with border */
+.main_navbar .dropdown-item-text.grey {
+  border-bottom: 1px solid #17181a !important;
+  color: var(--text_grey1) !important;
+  font-size: 12px !important;
+  padding: 10px 16px !important;
+  background: #0a0a0a !important;
+}
+
+.main_navbar .dropdown-item-text.drop-balance {
+  background: #0f1012 !important;
+  border-bottom: 1px solid #17181a !important;
+}
+
+/* Balance section in dropdown */
+.main_navbar .drop-balance {
+  padding: 12px 16px !important;
+  background: #0f1012 !important;
+  margin: 0 !important;
+}
+
+.main_navbar .balanceTitle {
+  font-size: 11px !important;
+  color: var(--text_grey1) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px !important;
+}
+
+.main_navbar .balance-card span {
+  color: var(--text_white) !important;
+}
+
+.main_navbar .balance-card span:first-child {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+}
+
+.main_navbar .balance-card span:last-child {
+  font-size: 13px !important;
+  color: var(--btn_hover-bg) !important;
+}
+
+.main_navbar .copy {
+  color: var(--text_grey1) !important;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.main_navbar .copy:hover {
+  color: var(--btn_hover-bg) !important;
+}
+
+.main_navbar .copy svg {
+  vertical-align: middle;
+  transition: all 0.2s ease;
+}
+
+.main_navbar .copy:hover svg {
+  stroke: var(--btn_hover-bg) !important;
+  opacity: 1 !important;
+}
+
+.order_dropdown_new_show.show {
+  display: block;
+  width: auto !important;
+  background: #222222 !important;
+  border: 1px solid #222222 !important;
+  color: #fff !important;
+}
+
+.order_dropdown_new_show .dropdown-item {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: #fff !important;
+  padding: 2px 10px;
+}
+
+.order_dropdown_new_show .dropdown-item:hover {
+  background: #302f2ff0;
+}
+.arrow-search {
+  filter: contrast(1) invert(1);
+}
+
+.bottom_modal.modal.fade .modal-dialog {
+  transform: translate(0, 50px);
+}
+.bottom_modal .modal-dialog {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0% !important;
+  right: 0% !important;
+  margin: 0;
+}
+.bottom_modal.modal.show .modal-dialog {
+  transform: none;
+}
+.bottom_modal .modal-content {
+  border-radius: 20px 20px 0 0;
+}
+.dropdown_submenu {
+  margin: 0 20px;
+}
+.offcan_custom .dropdown_submenu_div {
+  width: auto;
+  transform: translateY(20px) translateX(0);
+}
+.offcan_custom .dropdown_submenu_div.show {
+  transform: translateY(0px) translateX(0);
+}
+
+/* Light Theme */
+body
+
+.lightImg {
+  display: none;
+}
+
+.profit-modal .modal-body .form-control {
+  background: #222222 !important;
+  border: 1px solid #222222 !important;
+  box-shadow: none !important;
+  color: var(--text_white) !important;
+  padding: 10px;
+}
+
+.profit-modal .modal-header {
+  border-bottom-color: #29292b;
+}
+
+.profit-modal .modal-header .btn-close {
+  filter: invert(1);
+}
+
+.middle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  width: 100px;
+}
+
+.loading-logo {
+  width: 100px;
+  height: 100px;
+  animation: spin-anticlockwise 1.5s linear infinite;
+}
+
+@keyframes spin-anticlockwise {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent; /* Transparent background */
+  z-index: 9999;
+}
+
+.no-login-spot {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  display: flex;
+  -webkit-box-pack: center;
+  justify-content: center;
+  height: 100%;
+  -webkit-box-align: center;
+  align-items: center;
+  color: rgb(234, 236, 239);
+  padding: 20px 0px;
+}
+.no-login-spot span {
+  color: var(--yellow);
+}
+.cursor-pointer {
+  cursor: pointer !important;
+}
+.spinner_div {
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Media Queries */
+@media (max-width: 1199px) {
+  .offcan_custom .butn,
+  .offcan_custom .dropdown {
+    display: block;
+    text-align: center;
+  }
+
+  .order_dropdown_new_show.show {
+    width: 94% !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .navbar_switch_mobile {
+    display: flex;
+    gap: 15px;
+  }
+
+  .swapArrow {
+    transform: rotate(90deg);
+  }
+  .offcan_custom button {
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    min-width: 145px;
+  }
+}
+
+@media (max-width: 767px) {
+  .tabs .nav {
+    justify-content: center;
+  }
+
+  .modal-title {
+    font-size: 18px;
+  }
+  .futer-history-right {
+    justify-content: right;
+    width: 100%;
+    padding-right: 8px;
+  }
+}
+
+@media (max-width: 575px) {
+  .buttonWalletFlex {
+    flex-wrap: wrap;
+  }
+
+  .buttonWalletFlex button {
+    display: flex !important;
+    margin-right: 0 !important;
+  }
+
+  .buttonWalletFlex button label {
+    display: block;
+    text-align: center;
+    margin: 0 auto;
+  }
+
+  .offcan_custom button.btn-close {
+    min-width: auto;
+  }
+
+  .slider .slick-prev {
+    left: 0;
+  }
+
+  .slider .slick-next {
+    right: 0;
+  }
+
+  .slider .slick-list {
+    margin: 0 auto;
+    max-width: 90%;
+  }
+
+  .tabs .nav-item:not(:last-of-type) {
+    margin-right: 10px;
+  }
+
+  .tabs .nav-item button {
+    font-size: 16px;
+    margin-bottom: 5px;
+    padding: 8px 13px;
+  }
+  .VerifyBadge {
+    position: unset;
+    width: fit-content;
+    margin-bottom: 20px;
+  }
+  .notVerifyBadge {
+    position: unset;
+    width: fit-content;
+    margin-bottom: 20px;
+  }
+}
+
+.block_peer {
+  background-color: #14bb7b;
+  border: 0;
+  border-radius: 5px;
+  color: white;
+  padding: 2px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.unblock_peer {
+  background-color: #ef5350;
+  border: 0;
+  border-radius: 5px;
+  color: white;
+  padding: 2px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+/* -----------------------Market-new----------------------- */
+
+.tabs1 .nav-tabs .nav-link {
+  border: 1px solid transparent !important;
+  font-size: 16px !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+  line-height: 24px !important;
+  color: #707a8a;
+  white-space: nowrap;
+  border: none;
+}
+
+.tabs1 .nav-tabs {
+  border: 1px solid transparent !important;
+  flex-wrap: nowrap;
+}
+
+.innertab .nav-tabs {
+  margin-bottom: 30px;
+}
+
+.tabs1 .nav-tabs .nav-link.active,
+.tabs1 .nav-tabs .nav-item.show .nav-link {
+  color: #202630;
+  border: 1px solid transparent !important;
+}
+
+.tabs1 .nav-tabs .nav-link.active::after {
+  content: "";
+  display: block;
+  width: 30px;
+  height: 2px;
+  background: #1d94ff;
+  margin: 0 auto;
+  top: 4px;
+  position: relative;
+}
+
+.innertab .nav-tabs .nav-link {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 22px !important;
+  color: #707a8a !important;
+  padding: 3px 5px;
+  border: none;
+}
+
+.innertab .nav-tabs .nav-link.active,
+.innertab .nav-tabs .nav-item.show .nav-link {
+  color: #1e2329 !important;
+  background: #f5f5f5;
+  border: 1px solid transparent !important;
+  border-radius: 0.375rem;
+}
+
+.innertab .nav-tabs .nav-link.active::after {
+  display: none;
+}
+
+.innertab .nav-tabs {
+  gap: 25px;
+}
+
+.innertab.rdt_TableCell {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+.innertab .rdt_TableRow {
+  border-bottom-color: transparent !important;
+  /* padding: 20px; */
+  border-radius: 8px;
+}
+
+.innertab .rdt_TableRow:hover {
+  background: #fafafa;
+}
+
+.innertab .rdt_TableHeadRow {
+  border-bottom-color: transparent !important;
+  color: #707a8a;
+  font-weight: 400;
+}
+
+.tabs1 .rdt_TableCell {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+.tabs1 .rdt_TableRow {
+  border-bottom-color: transparent !important;
+  /* padding: 20px; */
+  border-radius: 8px;
+}
+
+.tabs1 .rdt_TableRow:hover {
+  background: #fafafa;
+}
+
+.tabs1 .rdt_TableHeadRow {
+  border-bottom-color: transparent !important;
+  color: #707a8a;
+  font-weight: 400;
+}
+
+.tab_search .input-group {
+  width: auto;
+}
+
+.rdt_Table > div {
+  background-color: #070707;
+  color: #eaecef;
+}
+
+.tabs1 .nav-tabs .nav-link.active,
+.tabs1 .nav-tabs .nav-item.show .nav-link {
+  background: transparent;
+  color: #eaecef;
+}
+
+.innertab .nav-tabs .nav-link.active,
+.tabs1 .nav-tabs .nav-item.show .nav-link {
+  background: #2b3139;
+  color: #eaecef !important;
+}
+
+.tabs1 .rdt_Table {
+  background-color: transparent;
+}
+
+.tabs1 .rdt_TableCol {
+  background-color: #070707;
+}
+
+.tabs1 .rdt_TableBody {
+  background-color: #070707;
+}
+
+.tabs1 .rdt_TableRow {
+  background-color: #070707;
+}
+
+.tabs1 .rdt_TableHeadRow {
+  border-bottom-color: #070707 !important;
+}
+
+.tabs1 .rdt_TableCell {
+  color: #eaecef !important;
+}
+
+.tabs1 .rdt_TableRow:hover {
+  background: #1e2026;
+}
+.amount_select .dropdown-item:hover {
+  background: #202021;
+  color: #fff;
+}
+.amount_select .dropdown-item.active,
+.dropdown-item:active {
+  background-color: #202021;
+  color: #fff;
+}
+@media (max-width: 991px) {
+  .tabs1 .flex_nav .nav-tabs {
+    overflow-x: scroll;
+    flex-wrap: nowrap;
+    overflow-y: hidden;
+    padding-bottom: 20px;
+  }
+
+  .innertab .nav-tabs {
+    overflow: hidden;
+    flex-wrap: nowrap;
+  }
+}
+.nav_content .rdt_TableCell {
+  font-weight: 500;
+  font-size: 14px;
+  color: #ababab;
+  /* padding-left: 10px !important; */
+  padding-right: 10px !important;
+  /* background: #000 !important; */
+}
+.nav_content .rdt_TableCol {
+  /* background: #000 !important; */
+  padding-left: 0px !important;
+}
+.nav_content .rdt_TableCol {
+  background: #1c1611;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding: 25px !important;
+  justify-content: center;
+  border-right: none !important;
+}
+.nav_content .rdt_TableCol:first-child {
+  justify-content: flex-start;
+}
+.nav_content .rdt_TableRow {
+  background: #0f0f10 !important;
+  color: #fff !important;
+  border-bottom: 1px solid #1c1611 !important;
+  /* padding: 25px 0px !important; */
+}
+.nav_content .rdt_TableCell {
+  border-left: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding: 25px !important;
+  /* border-bottom: 1px solid  rgba(255, 255, 255, 0.05) !important; */
+  justify-content: center;
+}
+.nav_content .rdt_TableCell:last-child {
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+.nav_content .rdt_TableRow .rdt_TableCell:first-child {
+  justify-content: flex-start;
+}
+.nav_content .rdt_TableHeadRow {
+  background: #1c1611 !important;
+  font-weight: 500;
+  font-size: 20px;
+  text-align: center;
+  color: #fff;
+}
+.nav_content {
+  border-radius: 19px !important;
+}
+.nav_content .rdt_TableBody .rdt_TableRow:nth-child(odd) {
+  background: #141414 !important;
+}
+.nav_content .rdt_TableCol:first-child {
+  color: #1d94ff;
+  font-weight: 600;
+  font-size: 20px;
+}
+.nav_content .rdt_TableRow .rdt_TableCell:first-child {
+  color: #1d94ff !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+}
+.nav_content .rdt_TableCol:first-child {
+  border-radius: 19px 0px 0px 0px;
+}
+.nav_content .rdt_TableCol:last-child {
+  border-radius: 0px 19px 0px 0px;
+}
+
+/* staker_table */
+.staker_table.table {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  /* background-color: #0f0f10 !important; */
+  background: #0f0f10 !important ;
+  /* border-radius: 18px 0px 0px 0px !important ; */
+}
+.staker_table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 19px !important;
+}
+.staker_table thead th {
+  color: #fff !important;
+  padding: 20px !important;
+  background: #1c1611;
+}
+.staker_table thead tr {
+  border-radius: 19px 19px 0 0 !important;
+}
+.staker_table tbody td {
+  color: #fff !important;
+  padding: 20px !important;
+  background: #141414;
+}
+.staker_table tbody th {
+  color: #fff !important;
+  padding: 20px !important;
+  background: #141414;
+}
+.staker_table tbody tr:nth-child(odd) {
+  background: #1414a0 !important;
+}
+.staker_table thead th {
+  font-weight: 500;
+  font-size: 20px;
+  letter-spacing: -0.05em;
+  text-align: center;
+  color: #fff;
+}
+.staker_table thead th:first-child {
+  color: #1d94ff !important;
+  font-weight: 600 !important;
+  font-size: 20px !important;
+}
+.staker_table thead th:first-child {
+  /* border-radius: 18px 0px 0px 0px ; */
+}
+.staker_table tbody td {
+  font-size: 16px;
+  font-weight: 400;
+  color: #ababab !important;
+  text-align: center;
+}
+.staker_table tbody th {
+  font-size: 16px;
+  font-weight: 400;
+  color: #ababab !important;
+}
+.staker_table tbody th.head_bg {
+  color: #1d94ff !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+}
+.staker_table tbody tr.row_bg th {
+  background-color: #0f0f10 !important;
+}
+.staker_table tbody th:first-child {
+  width: 20%;
+}
+.staker_table tbody tr.row_bg_1 th {
+  background-color: #0f0f10 !important;
+}
+.staker_table tbody tr.row_bg_1 td {
+  background-color: #0f0f10 !important;
+}
+
+.staked_progress {
+  width: 100%;
+  max-width: 400px;
+  margin: auto;
+}
+.staked_progress .progress_bar {
+  width: 100%;
+  height: 10px;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 10px 0px;
+}
+.staked_progress .progress_fill {
+  height: 100%;
+  background: linear-gradient(
+    360deg,
+    rgba(29, 148, 255, 0.8) 0%,
+    rgba(202, 201, 200, 0.2) 50%,
+    rgba(29, 148, 255, 0.9) 100%
+  );
+  transition: width 0.3s ease;
+}
+.staked_progress .staked_progress_flex {
+  display: flex;
+  justify-content: space-between;
+}
+.staked_progress label {
+  font-size: 14px;
+}
+
+/* staker_table */
+.transaction_table.table {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  /* background-color: #0f0f10 !important; */
+  background: rgba(255, 255, 255, 0.05) !important ;
+  /* border-radius: 18px 0px 0px 0px !important ; */
+}
+.transaction_table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 19px !important;
+}
+.transaction_table thead th {
+  color: #fff !important;
+  padding: 20px 15px !important;
+  background: #1a1919;
+}
+.transaction_table thead tr {
+  border-radius: 19px 19px 0 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.transaction_table tbody td {
+  color: #fff !important;
+  padding: 20px !important;
+  background: #0f0f10;
+}
+.transaction_table tbody th {
+  color: #fff !important;
+  padding: 20px !important;
+  background: #0f0f10;
+}
+.transaction_table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.transaction_table thead th {
+  font-weight: 400 !important;
+  font-size: 15px !important;
+  text-align: left;
+  color: #ababab !important;
+}
+
+.transaction_table tbody td {
+  font-size: 15px;
+  font-weight: 400;
+  color: #c8c8c8 !important;
+  text-align: center;
+}
+.transaction_table tbody th {
+  font-size: 15px;
+  font-weight: 400;
+  color: #c8c8c8 !important;
+}
+
+.transaction_table tbody th:first-child {
+  width: 15%;
+}
+.transaction_table tbody tr:last-child td {
+  color: #fff;
+  font-weight: 700;
+  background: #141414;
+}
+
+@media (max-width: 1399px) {
+  .nav_content .rdt_TableCell div:first-child {
+    overflow: visible !important;
+    white-space: nowrap;
+  }
+  .nav_content .rdt_TableCell {
+    width: auto !important;
+  }
+}
+@media (max-width: 575px) {
+  .react-datepicker-wrapper {
+    width: 100%;
+  }
+}
+@media (max-width: 1199px) {
+  .mobile_none {
+    display: none;
+  }
+}
+
+.datapick {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.datapick_head {
+  border: 1px solid transparent;
+  padding: 12px;
+  font-weight: 400;
+  font-size: 13px;
+  width: 100%;
+  border-radius: 10px !important;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  background: #0f0f10 !important;
+  color: #ababab !important;
+  height: 56px;
+}
+.datapick_head::placeholder {
+  font-weight: 400;
+  font-size: 13px;
+  color: #696e70;
+}
+.datapick .react-datepicker__view-calendar-icon input {
+  padding-left: 35px;
+}
+.datapick .react-datepicker__close-icon {
+  padding-right: 12px;
+}
+.datapick .react-datepicker__close-icon::after {
+  border-radius: 0;
+  background-color: #2a2a2a;
+}
+.datapick .react-datepicker__month-container {
+  background: #242424 !important;
+  box-shadow: 2px 2px 4px 0 rgb(4 4 4 / 50%), 4px 4px 15px 0 rgba(0, 0, 0, 0.1) !important;
+  color: #fff !important;
+}
+.datapick .react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__time-name {
+  color: #938e8a !important;
+}
+.datapick .react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  color: #938e8a !important;
+}
+.datapick .react-datepicker__header {
+  background: #242424 !important;
+  border-bottom: 1px solid transparent !important;
+  color: #fff !important;
+}
+.datapick .react-datepicker__day--selected:hover {
+  background: #141414 !important;
+  color: #fff !important;
+}
+.datapick .react-datepicker__day--selected {
+  background: #141414 !important;
+  color: #fff !important;
+}
+.datapick .react-datepicker__day:hover {
+  background: #141414 !important;
+  color: #fff !important;
+}
+.datapick .react-datepicker__day--keyboard-selected {
+  background: #141414 !important;
+  color: #fff !important;
+}
+.react-datepicker__navigation-icon::before {
+  border-color: #938e8a !important;
+}
+.datapick .react-datepicker {
+  border: none !important;
+  box-shadow: none;
+}
+
+.datapick_head:focus-visible {
+  outline: 1px solid transparent !important;
+}
+.datapick .react-datepicker__input-container .react-datepicker__calendar-icon {
+  top: 3px;
+  padding: 8px 10px;
+}
+
+@media (max-width: 766px) {
+  .react-datepicker-wrapper {
+    width: 100%;
+  }
+  .custom-date-picker {
+    width: 100% !important;
+  }
+}
+
+.amount_select .btn-primary {
+  color: #212529;
+}
+.amount_select .btn:hover {
+  background: #edbf96;
+  color: #212529;
+}
+.amount_select .btn:active {
+  background-color: #edbf96 !important;
+  color: #212529 !important;
+}
+.amount_select .btn.show {
+  background-color: #edbf96 !important;
+  color: #212529;
+}
+.amount_select .dropdown-item.active,
+.dropdown-item:active {
+  background-color: #ffc693;
+  color: #212529;
+}
+.amount_select .dropdown-item:hover {
+  background-color: #fdecdc;
+}
+.amount_select.input-group .btn {
+  width: 76px;
+}
+.amount_select.input-group .dropdown-menu .dropdown-item {
+  color: var(--text_white);
+}
+
+/* Tabular numbers for aligned columns */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================
+   MINIMAL NAVBAR BUTTONS - TradingView style
+   ============================================ */
+
+/* Ghost button for Login */
+.navbar_btn_ghost {
+  height: 34px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar_btn_ghost:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 1);
+}
+
+.navbar_btn_ghost span,
+.navbar_btn_ghost label {
+  display: none;
+}
+
+/* Subtle filled button for Register */
+.navbar_btn_fill {
+  height: 34px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(29, 148, 255, 0.85);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar_btn_fill:hover {
+  background: rgba(29, 148, 255, 1);
+  transform: translateY(-1px);
+}
+
+.navbar_btn_fill span,
+.navbar_btn_fill label {
+  display: none;
+}
+
+/* Button container gap */
+.navbar_btns {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Light theme variations */
+

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Login Verification Code</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #070707; font-family: 'Inter', Arial, sans-serif;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #070707;">
+        <!-- Logo Header -->
+        <tr>
+            <td style="padding: 40px 20px 20px; text-align: center;">
+                <img src="{{{LOGO_URL}}}" alt="Cryptodex Logo" style="max-width: 180px; height: auto;">
+            </td>
+        </tr>
+
+        <!-- Main Content Card -->
+        <tr>
+            <td style="padding: 20px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background: linear-gradient(145deg, #0a0a0a 0%, #070707 100%); border: 1px solid #1a1919; border-radius: 16px; overflow: hidden;">
+
+                    <!-- Top Accent Bar -->
+                    <tr>
+                        <td style="background: linear-gradient(90deg, #1d94ff 0%, #0a6cc4 100%); height: 4px;"></td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 50px 40px; text-align: center;">
+                            <!-- Lock Icon -->
+                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #1d94ff 0%, #0a6cc4 100%); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 25px;">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2C9.243 2 7 4.243 7 7V10H6C5.448 10 5 10.448 5 11V21C5 21.552 5.448 22 6 22H18C18.552 22 19 21.552 19 21V11C19 10.448 18.552 10 18 10H17V7C17 4.243 14.757 2 12 2ZM12 4C13.654 4 15 5.346 15 7V10H9V7C9 5.346 10.346 4 12 4Z" fill="white"/>
+                                </svg>
+                            </div>
+
+                            <!-- Heading -->
+                            <h1 style="margin: 0 0 10px; font-size: 26px; font-weight: 600; color: #ffffff; letter-spacing: 0.5px;">Login Verification</h1>
+                            <p style="margin: 0 0 35px; font-size: 15px; color: #d0d0d0; line-height: 1.6;">Use the verification code below to complete your login:</p>
+
+                            <!-- OTP Code Box -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 320px; margin: 0 auto 35px;">
+                                <tr>
+                                    <td style="background: linear-gradient(135deg, rgba(29, 148, 255, 0.15) 0%, rgba(29, 148, 255, 0.05) 100%); border: 2px dashed #1d94ff; border-radius: 12px; padding: 25px 20px; letter-spacing: 8px;">
+                                        <span style="font-size: 36px; font-weight: 700; color: #1d94ff; font-family: 'Courier New', monospace;">{{{OTP_CODE}}}</span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Timer Notice -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: rgba(239, 83, 80, 0.08); border-left: 3px solid #ef5350; border-radius: 0 8px 8px 0; margin-bottom: 10px;">
+                                <tr>
+                                    <td style="padding: 15px 20px; text-align: left;">
+                                        <p style="margin: 0; font-size: 13px; color: #d0d0d0; line-height: 1.5;">
+                                            <strong style="color: #ef5350;">Valid for {{{EXPIRES_IN_MINUTES}}} minutes only</strong>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Security Notice -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: rgba(20, 187, 123, 0.08); border-left: 3px solid #14bb7b; border-radius: 0 8px 8px 0;">
+                                <tr>
+                                    <td style="padding: 15px 20px; text-align: left;">
+                                        <p style="margin: 0; font-size: 13px; color: #d0d0d0; line-height: 1.5;">
+                                            <strong style="color: #14bb7b;">Security Notice:</strong> If you didn't request this code, please ignore this email and secure your account.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Anti-Phishing Code -->
+                            {{{ANTIPHISHING_CODE}}}
+                        </td>
+                    </tr>
+
+                    <!-- Bottom Accent Bar -->
+                    <tr>
+                        <td style="background: linear-gradient(90deg, #1d94ff 0%, #0a6cc4 100%); height: 4px;"></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+            <td style="padding: 40px 20px; text-align: center;">
+                <p style="margin: 0 0 10px; font-size: 14px; color: #999999;">Need help? Contact our support team</p>
+                <p style="margin: 0 0 30px; font-size: 14px; color: #1d94ff;"><a href="mailto:{{{SUPPORT_EMAIL}}}" style="color: #1d94ff; text-decoration: none;">{{{SUPPORT_EMAIL}}}</a></p>
+
+                <p style="margin: 0 0 5px; font-size: 12px; color: #6d6d6d;">&copy; {{{YEAR}}} {{{SITE_NAME}}}. All rights reserved.</p>
+                <p style="margin: 0; font-size: 12px; color: #6d6d6d;">{{{ADDRESS}}}</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

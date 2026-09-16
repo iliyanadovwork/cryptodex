@@ -1,0 +1,57 @@
+%% Flow: the demo faucet - the venue's only way to create money.
+%% Solid arrow = synchronous call. Dashed arrow = return, async or fire-and-forget.
+sequenceDiagram
+    autonumber
+    actor T as Trader browser
+    participant GW as deploy/gateway.mjs
+    participant R as routes/spot.route.js guards
+    participant FC as faucet.controller.js
+    participant RC as raw redis client
+    participant PL as paperLedger.js
+    participant RD as Redis
+    participant MS as MongoDB _spot
+    participant WG as grpc/walletService.js
+    participant WA as walletapi
+
+    T->>GW: POST /api/spot/faucet/claim
+    GW->>R: forwarded to spotapi
+    R->>RD: passportAuth - re-read userToken session
+    R->>WA: blockStoodDownAccount - gRPC frozen check
+    R->>RD: trackValueFlight - register the flight
+    R->>FC: claimFaucet
+
+    Note over T,WA: The cooldown key is taken FIRST - it is the lock, not a rate limit
+
+    FC->>RC: SET faucet_cooldown_userId NX EX 86400
+    alt reply is not OK
+        RC-->>FC: already held
+        FC->>RC: TTL to compute retryAfter
+        FC-->>T: 429 with retryAfter seconds
+    else reply is OK
+        FC->>MS: Currency.find coin in FAUCET_COINS
+        alt no faucet currency resolves
+            FC->>RC: DEL cooldown - nothing was credited
+            FC-->>T: 500 before any balance moves
+        end
+        loop for each faucet coin
+            FC->>PL: adjustSpotBalance account, FAUCET_AMOUNT 1000
+            PL->>RD: hincrbyfloat walletbalance_spot
+            PL-->>WG: syncSlowLedgers - updateUserAsset, never throws
+            WG-->>WA: gRPC, failure logged as diverged
+        end
+        FC->>MS: recordCreditedLegs - DepositEvent per leg
+        Note over FC,MS: unique index on signature makes a repeat non-double-crediting
+        FC-->>T: 200 with credited list and signatures
+    end
+
+    Note over T,WA: RESET is the mirror - it takes the freeze itself, so it is NOT a value flight
+
+    T->>GW: POST /api/spot/faucet/reset
+    GW->>R: passportAuth then blockStoodDownAccount only
+    R->>FC: resetFaucet
+    FC->>RD: claimOnce - take the per-user margin freeze
+    FC->>RD: read value_flight registry, wait for in-flight writers
+    FC->>PL: setSpotBalance - ABSOLUTE writes, set faucet coins, zero the rest
+    PL->>RD: hset walletbalance_spot
+    FC->>RD: releaseClaim - drop the freeze
+    FC-->>T: 200 reset complete

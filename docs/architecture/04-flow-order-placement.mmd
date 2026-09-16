@@ -1,0 +1,65 @@
+%% Flow: place a spot order, then fill and settle it.
+%% Solid arrow = synchronous call. Dashed arrow = return, async or emitted event.
+sequenceDiagram
+    autonumber
+    actor T as Trader browser
+    participant GW as deploy/gateway.mjs
+    participant R as routes/spot.route.js guards
+    participant SC as spot.controller.js
+    participant LUA as redis.controller.js Lua
+    participant RD as Redis
+    participant WG as grpc/walletService.js
+    participant WA as walletapi
+    participant MG as MongoDB _spot
+    participant CR as matcher cron 2s
+    participant PB as paperBook.controller.js
+    participant SK as socket.io
+
+    Note over T,SK: PART 1 - acceptance. Synchronous, returns 200 before the order is persisted.
+
+    T->>T: encryptObject(order) with NEXT_PUBLIC_CRYPTO_SECRET_KEY
+    T->>GW: POST /api/spot/orderPlace body token
+    GW->>R: HTTP forwarded byte for byte
+    R->>RD: passport - re-read userToken, check tokenId
+    RD-->>R: session row or reject 401
+    R->>WG: blockStoodDownAccount
+    WG->>WA: gRPC deactivateWallet mode check, 5s deadline
+    WA-->>WG: frozen true or false
+    R->>LUA: trackValueFlight - BEGIN_FLIGHT_LUA
+    LUA-->>R: registered, or 409 RESET_IN_PROGRESS
+    R->>SC: decryptTradeOrder then orderPlaceValidate
+    SC->>RD: FetchpairData - hget spotPairdata
+    RD-->>SC: pair, or fall back to Mongo
+    SC->>SC: assertOrderTradable - depth health and ladder capacity
+    SC->>RD: readSpotBalanceNumber - advisory pre-check
+    alt Redis balance field missing
+        SC->>WG: updateUserWallet to hydrate from Mongo
+        WG->>WA: gRPC
+    end
+    SC->>LUA: hincrbyfloatIfEnough - RESERVE_LUA
+    LUA->>RD: EXISTS freeze, HGET, HINCRBYFLOAT in one step
+    RD-->>LUA: new balance, FROZEN, or nil
+    LUA-->>SC: reserved or refused
+    SC->>RD: hincrbyfloat inOrder escrow - SEPARATE, not atomic
+    SC->>RD: hset buyOpenOrders or sellOpenOrders
+    SC-->>MG: newOrderHistory - NOT awaited
+    SC-->>SK: socketEmitOne updateTradeAsset to private room
+    SC-->>T: 200 order accepted
+
+    Note over T,SK: PART 2 - matching. Asynchronous, on a 2 second clock.
+
+    CR->>SC: matchingcall per active pair
+    SC->>PB: await syncPaperBook at tick top
+    PB->>RD: read Binance depth mirror
+    PB->>RD: hdel last cycle rows then hset new ladder
+    SC->>RD: hgetall both open-order hashes
+    RD-->>SC: in-memory snapshot
+    SC->>SC: tradeMatching - price-time, self-trade guard
+    SC->>RD: settlementCredit buyer base, seller quote
+    SC->>RD: releaseInOrder and refundUnspentReservation
+    SC-->>WG: passbook audit row - failure logged, never retried
+    WG-->>WA: gRPC
+    SC->>MG: newTradeHistory and updated order rows
+    SC-->>SK: socketEmitOne updateTradeAsset, openOrder, tradeHistory
+    SC-->>SK: socketEmitAll orderBook and recentTrade - global broadcast
+    SK-->>T: WebSocket frames

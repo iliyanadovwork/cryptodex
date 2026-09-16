@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+service Req {
+    rpc fetchUser (fetchUserReq) returns (fetchUserRes) {}
+    rpc bankDetail (bankDetailReq) returns (bankDetailRes) {}
+    rpc sendMail (sendMailReq) returns (sendMailRes) {}
+    // Renamed from `newNotification` to match userapi's server, which registers
+    // this handler as `notification` (userapi/grpc/server.js). gRPC dispatches on
+    // the method path, so `/Req/newNotification` was answered with
+    // 12 UNIMPLEMENTED - the call could never have worked.
+    rpc notification (notificationReq) returns (notificationRes) {}
+}
+
+message fetchUserReq {
+    string id = 1;
+}
+
+message Google2Fa {
+    string secret = 1;
+    string uri = 2;
+}
+
+message fetchUserRes {
+    string _id = 1;
+    string userCode = 2;
+    Google2Fa google2Fa = 3;
+    string email = 4;
+    string phoneNo = 5;
+    string createdAt = 6;
+    string profileImage = 7;
+}
+
+message BankDetail {
+    string _id = 1;
+    string bankName = 2;
+    string accountNo = 3;
+    string holderName = 4;
+    string bankcode = 5;
+    string country = 6;
+    string city = 7;
+    string bankAddress = 8;
+    string currencyId = 9;
+    string currencySymbol = 10;
+    bool isPrimary = 11;
+}
+
+message bankDetailReq {
+    string id = 1;
+}
+
+message bankDetailRes {
+    string _id = 1;
+    repeated BankDetail bankDetails = 2;
+    string google2Fa = 3;
+    bool status = 4;
+}
+
+message sendMailReq {
+    string id = 1;
+    string identifier = 2;
+    string toEmail = 3;
+    string content = 4;
+}
+
+message sendMailRes {
+    bool status = 1;
+}
+
+// MUST stay field-for-field identical to userapi/grpc/user.proto:notificationReq.
+// Protobuf decodes by TAG NUMBER, not by name, so the previous shape
+// (userId=1, viewType=2, title=3, description=4) would have been decoded by the
+// server as userId=1, title=2, description=3 - i.e. this side's `viewType`
+// arriving as the server's `title`, this side's `title` arriving as the server's
+// `description`, and this side's `description` silently dropped as an unknown
+// field. A name-only fix would have produced scrambled notifications rather than
+// an error, which is worse than the UNIMPLEMENTED it used to return.
+message notificationReq {
+    string userId = 1;
+    string title = 2;
+    string description = 3;
+}
+
+message notificationRes {
+    bool status = 1;
+}
+
+message Empty {}

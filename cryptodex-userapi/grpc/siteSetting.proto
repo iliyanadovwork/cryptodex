@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+service Req{
+    rpc SiteSetting (Empty) returns (siteSetResp) {}
+}
+
+message UserDashboard {
+    string currencyId = 1;
+    string colorCode = 2;
+}
+
+message siteSetResp {
+    bool status = 1;
+    repeated UserDashboard userDashboard = 2;
+}
+
+message Empty {}

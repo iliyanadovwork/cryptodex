@@ -1,0 +1,80 @@
+%% frontend - internal components (Next.js 13 pages router)
+%% Shapes: [ ] module we own | [( )] browser-side store | ([ ]) external system
+%% Arrows: solid = synchronous call | dotted = async / streaming
+flowchart TB
+    trader(("Trader"))
+
+    subgraph edge["Edge"]
+        mw["middleware.ts<br/>loggedin cookie gate"]
+        routes["components/Router/routes.ts<br/>authRoutes, protectedRoutes"]
+    end
+
+    subgraph pages["Pages"]
+        app["pages/_app.tsx<br/>Provider, SocketContext, IdleTimer 30m"]
+        spotpage["pages/spot dynamic route<br/>the trading screen"]
+        authpages["pages/login, register, verification"]
+        walletpages["pages/wallet, faucet, reset, history"]
+        clientinfo["pages/api/client-info.ts<br/>the only API route"]
+    end
+
+    subgraph comps["Trading components"]
+        orderbook["components/spot/OrderBook.tsx"]
+        ticket["components/spot/MarketOrder + LimitOrder"]
+        tape["components/spot/RecentTrade.tsx"]
+        chart["components/spot/Chart.js<br/>vendored TradingView library"]
+    end
+
+    subgraph svc["Service layer - 5 axios instances"]
+        usersvc["services/User/*<br/>USER_API/api"]
+        walletsvc["services/Wallet/* + Common/*<br/>WALLET_API/api"]
+        spotsvc["services/Spot/* + Wallet/SpotApiService<br/>SPOT_API/api"]
+        crypto["lib/cryptoJS.js<br/>AES-wraps order payloads"]
+        datafeed["lib/customDatafeed.js<br/>UDF fetch, no auth header"]
+    end
+
+    subgraph state["Client state"]
+        store[("store/ redux + redux-persist<br/>localStorage key user")]
+        socket["config/socketConnectivity.js<br/>one socket.io client"]
+    end
+
+    userapi(["userapi"])
+    walletapi(["walletapi"])
+    spotapi(["spotapi"])
+    tv(["TradingView embed CDN"])
+
+    trader --> mw
+    mw --> routes
+    mw --> app
+    app --> spotpage
+    app --> authpages
+    app --> walletpages
+    spotpage --> orderbook
+    spotpage --> ticket
+    spotpage --> tape
+    spotpage --> chart
+
+    authpages --> usersvc
+    authpages -->|"HTTP - geo/IP"| clientinfo
+    walletpages --> walletsvc
+    walletpages --> spotsvc
+    ticket --> crypto
+    crypto --> spotsvc
+    orderbook --> spotsvc
+    chart --> datafeed
+
+    usersvc -->|"HTTPS - Authorization raw, no Bearer"| userapi
+    walletsvc -->|"HTTPS"| walletapi
+    spotsvc -->|"HTTPS"| spotapi
+    datafeed -->|"HTTPS - UDF, unauthenticated"| spotapi
+
+    app --> socket
+    socket -->|"WebSocket - CREATEROOM with JWT"| spotapi
+    spotapi -.->|"orderBook, marketPrice, recentTrade"| socket
+    spotapi -.->|"openOrder, tradeHistory, updateTradeAsset"| socket
+    socket -.-> orderbook
+    socket -.-> tape
+
+    usersvc --> store
+    store -->|"token read by every interceptor"| spotsvc
+    store --> walletsvc
+    chart -.->|"self-hosted, no CDN"| tv

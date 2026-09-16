@@ -1,0 +1,54 @@
+%% Cryptodex - Containers (PRODUCTION / Railway topology)
+%% Shapes: [ ] process we own | [( )] datastore | ([ ]) external system | (( )) human actor
+%% Arrows: solid = synchronous | dotted = async / streaming / scheduled
+flowchart TB
+    trader(("Trader"))
+
+    subgraph websvc["Railway service: cryptodex-web"]
+        next["Next.js 13 web app<br/>next start -p PORT"]
+    end
+
+    subgraph apisvc["Railway service: cryptodex-api - ONE container"]
+        sup["supervisor.mjs<br/>PID 1 - fail-fast"]
+        gw["gateway.mjs<br/>single public port 8080"]
+        user["userapi<br/>HTTP 2567 - gRPC 6001"]
+        wallet["walletapi<br/>HTTP 3002 - gRPC 6002"]
+        spot["spotapi<br/>HTTP 2568 - gRPC 6003"]
+    end
+
+    mongo[("MongoDB<br/>_user / _wallet / _spot")]
+    redis[("Redis<br/>shared, REDIS_PREFIX")]
+    binance(["Binance public<br/>market data"])
+    resend(["Resend"])
+    cryptocompare(["CryptoCompare"])
+
+    trader -->|"HTTPS - pages"| next
+    trader -->|"HTTPS - REST/JSON"| gw
+    trader -->|"WebSocket - socket.io"| gw
+
+    sup -.->|"spawn + supervise"| user
+    sup -.->|"spawn + supervise"| wallet
+    sup -.->|"spawn + supervise"| spot
+    sup -.->|"spawn after all 3 listen"| gw
+
+    gw -->|"HTTP - /api/auth,user,language"| user
+    gw -->|"HTTP - /api/wallet,currency,common"| wallet
+    gw -->|"HTTP - /api/spot,dashboard + /socket.io"| spot
+
+    spot -->|"gRPC - getUserAsset, updateUserWallet, passbook"| wallet
+    user -->|"gRPC - cancelOrderForDeactiveAcc"| spot
+    wallet -->|"gRPC - fetchUser, bankDetail, sendMail"| user
+
+    user -->|"Mongo wire"| mongo
+    wallet -->|"Mongo wire"| mongo
+    spot -->|"Mongo wire"| mongo
+    spot -->|"Mongo wire - 2nd conn to wallet DB"| mongo
+
+    user -->|"RESP"| redis
+    wallet -->|"RESP"| redis
+    spot -->|"RESP - authoritative balances"| redis
+
+    binance -.->|"WebSocket - depth, aggTrade"| spot
+    spot -->|"HTTPS - REST snapshot/ticker/klines"| binance
+    user -->|"HTTPS - POST /emails"| resend
+    wallet -.->|"HTTPS - 5 min cron"| cryptocompare

@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+service Req{
+    rpc NewAsset (newAssetReq) returns (newAssetRes) {}
+    rpc getAdminDashboard (getAdminDashboardReq) returns (getAdminDashboardRes) {}
+    rpc deactivateWallet(deactivateWalletReq) returns (deactivateWalletRes){}
+}
+// Kept field-for-field identical to walletapi/grpc/wallet.proto, which is now
+// the SERVER side of this call. `mode` is optional: an empty string means
+// "freeze", the behaviour every existing caller wants.
+message deactivateWalletReq {
+    string userId =1;
+    string mode = 2;   // "" | "freeze" | "unfreeze" | "check"
+}
+message deactivateWalletRes {
+    bool status = 1;
+    string message = 2;
+}
+message newAssetReq {
+    string userId = 1;
+    string userCode = 2;
+}
+
+message newAssetRes {
+    bool status = 1;
+}
+
+message getAdminDashboardReq {
+    string filter = 1;
+}
+
+message Result {
+  int32 depositCount = 1;
+  int32 withdrawCount = 2;
+}
+
+message getAdminDashboardRes {
+    bool status = 1;
+    Result result = 2;
+    int32 withdrawCount = 3;
+}
+
+
+message Empty {}

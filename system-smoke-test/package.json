@@ -1,0 +1,16 @@
+{
+  "name": "cryptodex-smoke-tests",
+  "version": "1.0.0",
+  "description": "System smoke tests for Cryptodex Crypto Exchange",
+  "type": "module",
+  "scripts": {
+    "test": "node smoke-test.js",
+    "test:unit": "node --test",
+    "test:services": "node check-services.js",
+    "start:services": "node start-services.js",
+    "stop:services": "node stop-services.js"
+  },
+  "dependencies": {
+    "axios": "^1.13.2"
+  }
+}

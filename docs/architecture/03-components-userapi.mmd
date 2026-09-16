@@ -1,0 +1,84 @@
+%% userapi - internal components (identity)
+%% Shapes: [ ] module we own | [( )] datastore | ([ ]) external system
+%% Arrows: solid = synchronous in-process call | dotted = async / scheduled
+flowchart TB
+    gwin["gateway<br/>/api/auth, /api/user, /api/language"]
+
+    subgraph entry["Entry points"]
+        authroute["routes/auth.route.js<br/>register, login, reset, confirm-mail"]
+        userroute["routes/user.route.js<br/>profile, settings, notifications"]
+        miscroute["routes/language.route.js + health.route.js"]
+        grpcsrv["grpc/server.js<br/>3 services, 12 methods"]
+        cronreg["cleanupUnactivatedAccounts"]
+    end
+
+    subgraph guards["Guards"]
+        respguard["lib/responseGuard.js<br/>60s forced 500"]
+        pass["config/passport.js<br/>JWT + Redis session recheck"]
+        valid["validation/<br/>per-route validators"]
+    end
+
+    subgraph domain["Domain"]
+        authctrl["controllers/auth.controller.js<br/>register, activate, login, reset"]
+        userctrl["controllers/user.controller.js<br/>profile, deactivation fan-out"]
+        notif["controllers/notification.controller.js"]
+        tmpl["controllers/emailTemplate.controller.js<br/>renders stored templates"]
+        site["controllers/siteSetting.controller.js<br/>public branding read"]
+    end
+
+    subgraph mail["Mail"]
+        policy["lib/mailDelivery.js<br/>send vs log-only policy"]
+        gateway["lib/emailGateway.js<br/>Resend transport"]
+    end
+
+    subgraph data["Data access"]
+        redisctrl["controllers/redis.controller.js<br/>userToken session rows"]
+        models["models/<br/>User, UserSetting, EmailTemplate"]
+    end
+
+    subgraph clients["gRPC clients"]
+        toWallet["grpc/walletService.js<br/>newAsset, deactivateWallet"]
+        toSpot["grpc/spotService.js<br/>cancelOrderForDeactiveAcc"]
+    end
+
+    redis[("Redis")]
+    mongo[("MongoDB _user")]
+    resend(["Resend API"])
+    walletapi(["walletapi"])
+    spotapi(["spotapi"])
+
+    gwin -->|"HTTP"| respguard
+    respguard --> authroute
+    respguard --> userroute
+    respguard --> miscroute
+
+    authroute --> valid
+    userroute -->|"per-endpoint guard"| pass
+    valid --> authctrl
+    pass --> userctrl
+    miscroute --> site
+
+    authctrl -->|"render + send"| tmpl
+    userctrl --> notif
+    userctrl --> tmpl
+    tmpl --> policy
+    policy -->|"mode = send"| gateway
+    gateway -->|"HTTPS POST /emails"| resend
+
+    authctrl -->|"write session row"| redisctrl
+    pass -->|"read session row"| redisctrl
+    redisctrl -->|"RESP"| redis
+    authctrl --> models
+    userctrl --> models
+    notif --> models
+    site --> models
+    models -->|"Mongoose"| mongo
+
+    authctrl -->|"gRPC - newAsset on register"| toWallet
+    userctrl -->|"gRPC - deactivateWallet"| toWallet
+    userctrl -->|"gRPC - cancel open orders"| toSpot
+    toWallet -->|"gRPC insecure 127.0.0.1:6002"| walletapi
+    toSpot -->|"gRPC insecure 127.0.0.1:6003"| spotapi
+
+    grpcsrv -->|"fetchUser, sendMail, botUser"| authctrl
+    cronreg -.->|"scheduled sweep"| models

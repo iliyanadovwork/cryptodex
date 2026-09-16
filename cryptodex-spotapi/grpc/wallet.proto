@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+service Req{
+    rpc getUserAsset (getUserAssetReq) returns (getUserAssetRes) {}
+    rpc updateUserAsset (updateUserAssetReq) returns (updateUserAssetRes) {}
+    rpc updateUserWallet (updateUserWalletReq) returns (updateUserWalletRes) {}
+    rpc passbook (passbookReq) returns (passbookRes) {}
+}
+
+message getUserAssetReq {
+    string id = 1;
+    string currencyId = 2;
+}
+message updateUserWalletReq {
+    string id = 1;
+}
+message passbookReq {
+    string userId = 1;
+    string coin = 2;
+    string currencyId = 3;
+    string tableId = 4;
+    string beforeBalance = 5;
+    string afterBalance = 6;
+    string amount = 7;
+    string type = 8;
+    string category = 9;
+}
+
+message Assets {
+    string coin = 1;
+    string address = 2;
+    string destTag = 3;
+    string privateKey = 4;
+    int32 spotBal = 5;
+    int32 p2pBal = 7;
+}
+
+message getUserAssetRes {
+    bool status = 1;
+    Assets result = 2;
+}
+message updateUserWalletRes {
+    bool status = 1;
+}
+message passbookRes{
+    bool status = 1;
+}
+
+message updateUserAssetReq {
+    string id = 1;
+    string currencyId = 2;
+    string spotBal = 3;
+}
+
+message updateUserAssetRes {
+    bool status = 1;
+}
+
+message Empty {}

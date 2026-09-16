@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email Address</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #070707; font-family: 'Inter', Arial, sans-serif;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #070707;">
+        <!-- Logo Header -->
+        <tr>
+            <td style="padding: 40px 20px 20px; text-align: center;">
+                <img src="{{{LOGO_URL}}}" alt="Cryptodex Logo" style="max-width: 180px; height: auto;">
+            </td>
+        </tr>
+
+        <!-- Main Content Card -->
+        <tr>
+            <td style="padding: 20px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background: linear-gradient(145deg, #0a0a0a 0%, #070707 100%); border: 1px solid #1a1919; border-radius: 16px; overflow: hidden;">
+
+                    <!-- Top Accent Bar -->
+                    <tr>
+                        <td style="background: linear-gradient(90deg, #1d94ff 0%, #0a6cc4 100%); height: 4px;"></td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 50px 40px;">
+                            <!-- Greeting -->
+                            <h1 style="margin: 0 0 10px; font-size: 28px; font-weight: 600; color: #ffffff; letter-spacing: 0.5px;">Welcome to Cryptodex</h1>
+                            <p style="margin: 0 0 30px; font-size: 15px; color: #d0d0d0; line-height: 1.6;">Thank you for signing up. Please verify your email address to complete your registration.</p>
+
+                            <!-- Info Box -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: rgba(29, 148, 255, 0.08); border: 1px solid rgba(29, 148, 255, 0.2); border-radius: 12px; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <p style="margin: 0; font-size: 14px; color: #999999; line-height: 1.6;">
+                                            <strong style="color: #1d94ff;">Email:</strong> {{{USER_EMAIL}}}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Verify Button -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                                <tr>
+                                    <td style="padding: 20px 0 30px; text-align: center;">
+                                        <a href="{{{VERIFY_URL}}}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(90deg, #1d94ff 0%, #0a6cc4 100%); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px; letter-spacing: 0.5px;">Verify Email Address</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Divider -->
+                            <tr>
+                                <td style="padding: 20px 0;"><div style="border-top: 1px solid #1a1919;"></div></td>
+                            </tr>
+
+                            <!-- Instructions -->
+                            <p style="margin: 0 0 15px; font-size: 14px; color: #999999; line-height: 1.6;">Or copy and paste this link into your browser:</p>
+                            <p style="margin: 0 0 30px; font-size: 12px; color: #6d6d6d; word-break: break-all; background-color: #030303; padding: 12px; border-radius: 6px; border: 1px solid #1a1919;">{{{VERIFY_URL}}}</p>
+
+                            <!-- Security Notice -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: rgba(20, 187, 123, 0.08); border-left: 3px solid #14bb7b; border-radius: 0 8px 8px 0;">
+                                <tr>
+                                    <td style="padding: 15px 20px;">
+                                        <p style="margin: 0; font-size: 13px; color: #d0d0d0; line-height: 1.5;">
+                                            <strong style="color: #14bb7b;">Security Notice:</strong> This link will expire in {{{EXPIRES_IN_HOURS}}} hours. If you didn't create an account with Cryptodex, please ignore this email.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Anti-Phishing Code -->
+                            {{{ANTIPHISHING_CODE}}}
+                        </td>
+                    </tr>
+
+                    <!-- Bottom Accent Bar -->
+                    <tr>
+                        <td style="background: linear-gradient(90deg, #1d94ff 0%, #0a6cc4 100%); height: 4px;"></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+            <td style="padding: 40px 20px; text-align: center;">
+                <p style="margin: 0 0 10px; font-size: 14px; color: #999999;">Need help? Contact our support team</p>
+                <p style="margin: 0 0 30px; font-size: 14px; color: #1d94ff;"><a href="mailto:{{{SUPPORT_EMAIL}}}" style="color: #1d94ff; text-decoration: none;">{{{SUPPORT_EMAIL}}}</a></p>
+
+                <p style="margin: 0 0 5px; font-size: 12px; color: #6d6d6d;">&copy; {{{YEAR}}} {{{SITE_NAME}}}. All rights reserved.</p>
+                <p style="margin: 0; font-size: 12px; color: #6d6d6d;">{{{ADDRESS}}}</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

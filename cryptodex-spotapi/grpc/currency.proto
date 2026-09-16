@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+service Req{
+    rpc CurrencyId (curIdReq) returns (curIdRes) {}
+    rpc CurrencySymbol (curSymbolReq) returns (curSymbolRes) {}
+    rpc priceConversionGrpc (priceConversionGrpcReq) returns (priceConversionGrpcRes) {}
+}
+
+message curIdReq {
+    string id = 1;
+}
+
+message curIdRes {
+    bool status = 1;
+    string coin = 2;
+    string image = 3;
+}
+
+message curSymbolReq {
+    string CurrencySymbol = 1;
+}
+
+message curSymbolRes {
+    bool status = 1;
+    string currencyImage = 2;
+    string currencyName = 3;
+}
+
+message priceConversionGrpcReq {
+    string baseSymbol = 1;
+    string convertSymbol = 2;
+}
+
+message priceConversionGrpcRes {
+    bool status = 1;
+    string convertPrice = 2;
+    string tokenId = 3;
+
+}
+
+message Empty {}

@@ -1,0 +1,54 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+pnpm-lock.yaml
+package-lock.json
+# testing
+/coverage
+
+# Ignore Vercel folder
+.vercel
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files (contain sensitive secrets)
+#
+# `local.env` IS IGNORED HERE, AND `npm run dev` CANNOT START WITHOUT IT.
+# The dev script is `env-cmd -f local.env next dev`, so a fresh clone gets
+# "Unable to locate env file" and no frontend at all - while dev.env and
+# prod.env, both listed below as ignored, are nevertheless committed (they were
+# added before these rules existed; an ignore rule does not untrack a file).
+# The templates are what a clone copies from, so they must NOT be ignored.
+.env*.local
+local.env
+dev.env
+.env
+.env.*
+!local.env.example
+!.env.local.example
+!*.env.example
+
+# vercel
+#.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

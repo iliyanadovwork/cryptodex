@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+service Req{
+    rpc NewAsset (newAssetReq) returns (newAssetRes) {}
+    rpc getUserAsset (getUserAssetReq) returns (getUserAssetRes) {}
+    rpc updateUserAsset (updateUserAssetReq) returns (updateUserAssetRes) {}
+    rpc updateUserWallet (updateUserWalletReq) returns (updateUserWalletRes) {}
+    rpc passbook (passbookReq) returns (passbookRes) {}
+    rpc getUserAllAsset (getUserAllAssetReq) returns (getUserAllAssetRes) {}
+    rpc getCnvPrice (getCnvPriceReq) returns (getCnvPriceRes) {}
+    rpc deactivateWallet (deactivateWalletReq) returns (deactivateWalletRes) {}
+}
+
+// Stand a wallet down / bring it back. userapi's account-deactivation flow has
+// always called this; it was declared only on the CLIENT side (userapi's copy
+// of this file) and implemented nowhere, so it returned 12 UNIMPLEMENTED and
+// deactivation could never complete. Field numbers 1 and 2 of both messages
+// match userapi/grpc/wallet.proto exactly, so old clients that send no `mode`
+// still work - proto3 gives them the empty string, which means "freeze".
+message deactivateWalletReq {
+    string userId = 1;
+    string mode = 2;   // "" | "freeze" | "unfreeze" | "check"
+}
+message deactivateWalletRes {
+    bool status = 1;
+    string message = 2;
+}
+
+message getCnvPriceReq {
+    string baseSymbol = 1;
+    string convertSymbol = 2;
+}
+message getCnvPriceRes {
+    bool status = 1;
+    string price = 2;
+    string tokenId = 3;
+}
+
+message newAssetReq {
+    string userId = 1;
+    string userCode = 2;
+    bool botUser = 3;
+}
+
+message newAssetRes {
+    bool status = 1;
+}
+
+// `getAdminDashboardReq` / `Result` / `getAdminDashboardRes` were here. They
+// described the operator dashboard's deposit and withdraw tiles; the admin
+// panel is gone, and the rpc that returned them with it.
+
+message getUserAssetReq {
+    string id = 1;
+    string currencyId = 2;
+}
+
+
+message Assets {
+    string coin = 1;
+    string address = 2;
+    string destTag = 3;
+    string privateKey = 4;
+    int32 spotBal = 5;
+    int32 p2pBal = 7;
+}
+
+message getUserAssetRes {
+    bool status = 1;
+    Assets result = 2;
+}
+
+message updateUserAssetReq {
+    string id = 1;
+    string currencyId = 2;
+    string spotBal = 3;
+}
+
+message updateUserAssetRes {
+    bool status = 1;
+}
+message updateUserWalletReq {
+    string id = 1;
+}
+message updateUserWalletRes {
+    bool status = 1;
+}
+message passbookReq {
+    string userId = 1;
+    string coin = 2;
+    string currencyId = 3;
+    string tableId = 4;
+    string beforeBalance = 5;
+    string afterBalance = 6;
+    string amount = 7;
+    string type = 8;
+    string category = 9;
+}
+message passbookRes {
+    bool status = 1;
+}
+message AllAssets {
+     string  _id = 3;
+     string coin = 4;
+     string address = 5;
+     string destTag = 6;
+     string privateKey = 7;
+     float spotBal = 8;
+     float erc20BlockNo = 10;
+     float beb20BlockNo = 11;
+     float trx20BlockNo = 12;
+     float poly20BlockNo = 13;
+     float p2pBal = 14;
+     float blockNo = 15;
+}
+
+message userAsset {
+    repeated AllAssets assets = 2;
+}
+message getUserAllAssetReq {
+    string id = 1;
+}
+message getUserAllAssetRes {
+    bool status = 1;
+    userAsset result = 2;
+}
+message Empty {}

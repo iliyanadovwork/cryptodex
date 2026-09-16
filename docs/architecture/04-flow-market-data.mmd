@@ -1,0 +1,64 @@
+%% Flow: Binance depth becomes the tradable ladder and the displayed order book.
+%% Solid arrow = synchronous call. Dashed arrow = return, async or emitted event.
+sequenceDiagram
+    autonumber
+    participant BN as EXTERNAL - Binance public API
+    box rgb(232,244,255) spotapi - all one process
+    participant WS as lib/binanceWebSocket.js
+    participant CACHE as orderBookCache in memory
+    participant DS as lib/depthSource.js
+    participant DH as lib/depthHealth.js
+    participant PB as paperBook.controller.js
+    participant BP as bookPublish.controller.js
+    participant SK as socket.io
+    end
+    participant RD as Redis depth mirror
+    actor T as Trader browser
+
+    Note over BN,T: BOOT - 5s after listen, one stream pair per active binance pair
+
+    WS->>BN: GET /api/v3/depth limit 1000
+    BN-->>WS: snapshot with lastUpdateId
+    WS->>CACHE: clear, repopulate bids and asks, set lastUpdateId
+    WS->>BN: open wss depth@100ms
+    WS->>BN: open wss aggTrade
+
+    Note over BN,T: STEADY STATE - every ~100ms
+
+    BN-->>WS: depth diff event U..u
+    alt gap detected - firstUpdateId > lastUpdateId + 1
+        WS->>CACHE: zero lastUpdateId FIRST so later events buffer
+        WS->>BN: re-fetch snapshot
+        WS->>CACHE: processBufferedEvents then replay
+    else contiguous
+        WS->>CACHE: applyDepthEvent - delete on qty 0, else set
+    end
+    WS->>RD: mirrorDepthToRedis - top 20 per side plus meta ts
+    WS-->>BP: notifyDepthListener - injected via setDepthListener
+
+    Note over BN,T: DERIVATION - one snapshot, one verdict, two consumers
+
+    BP->>DS: resolveDepthSnapshot
+    DS->>CACHE: getDepthSnapshot - memory first
+    alt memory miss
+        DS->>RD: redisDepthFallback
+    end
+    DS-->>BP: snapshot tagged memory or redis
+    BP->>DH: assessDepthHealth
+    DH-->>BP: healthy, or breaker reason
+
+    PB->>DS: resolveDepthSnapshot - the SAME function
+    PB->>DH: assessDepthHealth - the SAME verdict
+    PB->>PB: buildPaperOrders - group to MIN_NOTIONAL 25, quote worst price, 12 levels
+    PB->>RD: hdel last cycle rows then hset admin-owned ladder
+
+    BP->>RD: hgetall open orders to merge real user levels
+    BP->>BP: drop user levels that cross venue best, slice to 20
+    alt zero isPaper rows found in redis
+        BP->>BP: publish empty book, reason ladder_not_built
+    end
+    BP-->>SK: socketEmitAll orderBook - GLOBAL broadcast
+    SK-->>T: orderBook with seq, healthy, ladderPresent
+    BN-->>WS: aggTrade events
+    WS-->>SK: socketEmitAll recentTrade - buffered 250ms
+    SK-->>T: recentTrade

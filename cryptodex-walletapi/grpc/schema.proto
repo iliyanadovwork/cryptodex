@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+message UserId {
+    string id = 1;
+}
+
+service WalletService {
+    rpc NewWallet (UserId) returns (Empty) {}
+}
+
+message Empty {}

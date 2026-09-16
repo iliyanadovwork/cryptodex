@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service Req {
+    rpc cancelOrderForDeactiveAcc (cancelOrdersReq) returns(cancelOrdersRes){}
+
+}
+message cancelOrdersReq {
+    string userId =1;
+}
+message cancelOrdersRes {
+    bool status =1;
+}
+
+message Empty {}

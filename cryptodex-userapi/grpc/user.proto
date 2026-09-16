@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+service Req {
+    rpc fetchUser (fetchUserReq) returns (fetchUserRes) {}
+    rpc fetchBotUser (fetchBotUserReq) returns (fetchBotUserRes) {}
+    rpc botUser (botUserReq) returns (botUserRes) {}
+    rpc bankDetail (bankDetailReq) returns (bankDetailRes) {}
+    rpc sendMail (sendMailReq) returns (sendMailRes) {}
+    rpc notification (notificationReq) returns (notificationRes) {}
+}
+
+message fetchUserReq {
+    string id = 1;
+}
+message fetchBotUserReq {
+    string id = 1;
+}
+message fetchBotUserRes {
+   string firstName = 1;
+   string lastName = 2;
+   string email = 3;
+   string _id = 4;
+   string userId = 5;
+}
+message botUserReq {
+   string firstName = 1;
+   string lastName = 2;
+   string email = 3;
+   string type = 4;
+}
+message notificationReq {
+   string userId = 1;
+   string title = 2;
+   string description = 3;
+}
+message notificationRes {
+    bool status = 1;
+}
+message botUserRes {
+    bool status = 1;
+}
+message Google2Fa {
+    string secret = 1;
+    string uri = 2;
+}
+
+message fetchUserRes {
+    string _id = 1;
+    string userCode = 2;
+    Google2Fa google2Fa = 3;
+    string email = 4;
+    string phoneNo = 5;
+    string createdAt = 6;
+    string profileImage = 7;
+    string assetPassword = 8;
+    string updatedAt = 9;
+    bool kycStatus = 10;
+}
+
+message BankDetail {
+    string _id = 1;
+    string bankName = 2;
+    string accountNo = 3;
+    string holderName = 4;
+    string bankcode = 5;
+    string country = 6;
+    string city = 7;
+    string bankAddress = 8;
+    string currencyId = 9;
+    string currencySymbol = 10;
+    bool isPrimary = 11;
+}
+
+message bankDetailReq {
+    string id = 1;
+}
+
+message bankDetailRes {
+    string _id = 1;
+    repeated BankDetail bankDetails = 2;
+    string google2Fa = 3;
+    bool status = 4;
+}
+
+message sendMailReq {
+    string id = 1;
+    string identifier = 2;
+    string toEmail = 3;
+    string content = 4;
+}
+
+message sendMailRes {
+    bool status = 1;
+}
+
+
+
+
+message Empty {}

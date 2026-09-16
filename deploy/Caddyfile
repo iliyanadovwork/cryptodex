@@ -1,0 +1,53 @@
+# Caddy sits in front of the backend and does two jobs: TLS, and nothing else.
+#
+# SITE_ADDRESS comes from the environment. Set it to a hostname and Caddy obtains
+# and renews a Let's Encrypt certificate on its own, with no cron and no certbot.
+# Leave it unset and it defaults to `:80`, which is what you want locally and on
+# first boot before DNS has propagated.
+#
+#   SITE_ADDRESS=api.example.com docker compose -f deploy/docker-compose.yml up -d
+#
+# WebSocket upgrades pass through untouched: reverse_proxy forwards the Upgrade
+# and Connection headers by default, so socket.io reaches gateway.mjs as a real
+# WebSocket rather than falling back to polling. Nothing here needs to know that
+# three services live behind `app`; routing between them is gateway.mjs's job and
+# deliberately stays there.
+
+{
+	# An email turns on ACME account recovery and expiry warnings. Without it Caddy
+	# still issues certificates, it just cannot tell you when something breaks.
+	email {$ACME_EMAIL:iliyanadovwork@gmail.com}
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# The health endpoint is proxied like everything else, but logged separately so
+	# an uptime checker hitting it every minute does not bury the real traffic.
+	handle /api/health {
+		reverse_proxy app:8080
+	}
+
+	handle {
+		reverse_proxy app:8080 {
+			# The backend reads the original host and scheme when it builds absolute
+			# URLs for emails and redirects. Without these it emits http://app:8080.
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+
+			# Long timeouts, because the Binance depth stream and socket.io sessions
+			# are long-lived by design. The default would cut them.
+			transport http {
+				read_timeout 300s
+				write_timeout 300s
+			}
+		}
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10mb
+			roll_keep 3
+		}
+	}
+}

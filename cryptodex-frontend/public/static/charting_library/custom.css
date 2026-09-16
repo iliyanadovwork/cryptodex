@@ -1,0 +1,308 @@
+/**
+ * TradingView Chart Custom Color Overrides - Dark Theme
+ * Only color changes to match the site's dark theme (#0f0f10 background)
+ */
+
+/* ===== Main Background Colors ===== */
+#tv_chart_container,
+.tv-chart-container,
+.chart-container,
+.chart-page,
+.pane-container,
+.pane,
+.canvas-container,
+.widget {
+  background-color: #0f0f10 !important;
+}
+
+/* ===== Header / Toolbar Colors ===== */
+.header-chart-panel,
+.tv-header,
+.toolbar,
+.toolbar-wrapper,
+.toolbar__pane,
+.left-toolbar,
+.right-toolbar,
+.top-toolbar,
+.bottom-toolbar,
+header,
+[data-toolbar],
+[class*="toolbar"],
+[class*="Toolbar"] {
+  background-color: #0f0f10 !important;
+}
+
+/* ===== All Toolbar Buttons ===== */
+.toolbar button,
+.toolbar .button,
+.toolbar__button,
+[class*="toolbar"] button,
+[class*="Toolbar"] button,
+header button,
+.tv-button,
+button[class*="tv"],
+[class*="control"] button {
+  background-color: #0f0f10 !important;
+  color: rgba(178, 181, 190, 0.8) !important;
+  border: none !important;
+}
+
+/* ===== Universal Toolbar Background Override ===== */
+#tv_chart_container .toolbar *,
+#tv_chart_container header *,
+#tv_chart_container [class*="toolbar"] *,
+#tv_chart_container [class*="Toolbar"] *,
+#tv_chart_container button,
+#tv_chart_container .button {
+  background-color: #0f0f10 !important;
+}
+
+/* Remove white backgrounds from any element */
+#tv_chart_container *[style*="background: white"],
+#tv_chart_container *[style*="background:#fff"],
+#tv_chart_container *[style*="background:#ffffff"],
+#tv_chart_container *[style*="background: rgb(255, 255, 255)"] {
+  background-color: #0f0f10 !important;
+}
+
+/* ===== Catch-all for ALL chart elements ===== */
+#tv_chart_container *,
+#tv_chart_container *::before,
+#tv_chart_container *::after {
+  background-color: #0f0f10 !important;
+}
+
+/* ===== Icons and SVG fill colors ===== */
+#tv_chart_container svg,
+#tv_chart_container svg path,
+#tv_chart_container svg rect,
+#tv_chart_container svg circle,
+#tv_chart_container i,
+#tv_chart_container .icon {
+  fill: rgba(178, 181, 190, 0.8) !important;
+  color: rgba(178, 181, 190, 0.8) !important;
+}
+
+/* ===== TradingView Library Dynamic Classes ===== */
+div[class*="separatorWrap"],
+div[class*="fill-"],
+div[class*="wrap-"],
+div[class*="separator"],
+div.separatorWrap-MBOV,
+div.fill-OhqVNIYA,
+div.wrap-n5bmFxyX,
+div[class*="-MBOV"],
+div[class*="-Ohq"],
+div[class*="-n5bm"],
+div[class*="group-"] {
+  background-color: #0f0f10 !important;
+}
+
+/* Group and fill elements */
+div.group,
+div.fill,
+div.wrap {
+  background-color: #0f0f10 !important;
+}
+
+/* ===== Pseudo-elements (before/after) ===== */
+div[class*="separatorWrap"]::before,
+div[class*="fill-"]::before,
+div[class*="wrap-"]::before,
+div[class*="separator"]::before,
+div[class*="group-"]::before,
+div[class*="separatorWrap"]::after,
+div[class*="fill-"]::after,
+div[class*="wrap-"]::after,
+div[class*="separator"]::after,
+div[class*="group-"]::after,
+div.group::before,
+div.group::after,
+div.fill::before,
+div.fill::after,
+div.wrap::before,
+div.wrap::after {
+  background-color: #0f0f10 !important;
+  border-color: #0f0f10 !important;
+}
+
+/* ===== Universal pseudo-element override ===== */
+#tv_chart_container *::before,
+#tv_chart_container *::after {
+  background-color: #0f0f10 !important;
+  border-color: #0f0f10 !important;
+}
+
+/* ===== Price Scale Colors (Right Axis) ===== */
+.price-scale,
+.pane-price-scale,
+.scale,
+.right-axis,
+.price-axis {
+  background-color: #0f0f10 !important;
+}
+
+/* ===== Time Scale Colors (Bottom Axis) ===== */
+.time-scale,
+.time-axis,
+.bottom-axis {
+  background-color: #0f0f10 !important;
+}
+
+/* ===== Scale Text Colors ===== */
+.scale-text,
+.price-scale-text,
+.time-scale-text,
+.axis-text,
+.owl-scale-text {
+  color: rgba(178, 181, 190, 0.7) !important;
+}
+
+/* ===== Grid Line Colors ===== */
+.grid-lines,
+.horizontal-grid,
+.vertical-grid,
+.grid-row,
+.grid-cell {
+  border-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ===== Control Button Colors ===== */
+.control-button,
+.toolbar-button,
+.chart-tool-button {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(178, 181, 190, 0.8) !important;
+}
+
+.control-button:hover,
+.toolbar-button:hover,
+.chart-tool-button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.control-button.active,
+.toolbar-button.active {
+  background-color: rgba(38, 166, 154, 0.3) !important;
+  border-color: #26a69a !important;
+}
+
+/* ===== Dialog / Modal Colors ===== */
+.dialog,
+.modal,
+.popup {
+  background-color: #1a1a1c !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.dialog-header,
+.modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ===== Dropdown Colors ===== */
+.dropdown,
+.select-wrapper,
+.custom-select {
+  background-color: #1a1a1c !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ===== Input Field Colors ===== */
+input[type="text"],
+input[type="number"],
+textarea {
+  background-color: #1a1a1c !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus {
+  border-color: #26a69a !important;
+}
+
+/* ===== Scrollbar Colors ===== */
+::-webkit-scrollbar-track {
+  background: #0f0f10 !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* ===== Loading Indicator Colors ===== */
+.loading-indicator,
+.tv-loading-indicator {
+  background-color: #0f0f10 !important;
+}
+
+.spinner,
+.tv-spinner {
+  border-top-color: #26a69a !important;
+}
+
+/* ===== Tooltip Colors ===== */
+.tooltip,
+.custom-tooltip {
+  background-color: rgba(26, 26, 28, 0.95) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* ===== Study Pane Colors ===== */
+.study-pane,
+.study-template-pane {
+  background-color: #0f0f10 !important;
+}
+
+/* ===== Symbol Search Colors ===== */
+.symbol-search,
+.symbol-search-dialog {
+  background-color: #1a1a1c !important;
+}
+
+.symbol-search input {
+  background-color: #0f0f10 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.symbol-search-item:hover,
+.symbol-search-item.active {
+  background-color: rgba(38, 166, 154, 0.2) !important;
+}
+
+/* ===== Checkbox Colors ===== */
+input[type="checkbox"] {
+  background-color: #1a1a1c !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #26a69a !important;
+}
+
+/* ===== Primary Button Colors ===== */
+.button-primary,
+.btn-primary {
+  background-color: #26a69a !important;
+  border-color: #26a69a !important;
+}
+
+.button-primary:hover,
+.btn-primary:hover {
+  background-color: #2bbdab !important;
+}
+
+/* ===== Remove any blue highlights from old library bugs ===== */
+.pane-price-scale *,
+.price-scale * {
+  background: #0f0f10 !important;
+  background-color: #0f0f10 !important;
+}

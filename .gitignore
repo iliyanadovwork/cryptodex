@@ -1,0 +1,177 @@
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# package-lock.json is deliberately NOT ignored. The deploy image is built on a
+# runner that is not this machine, and two of these trees compile native code
+# (bcrypt in userapi, the web3/keccak stack in walletapi). Resolving dependencies
+# fresh on every build means someone else's transitive release can break the deploy
+# with no change on our side. Lockfiles committed, `npm ci` in the Dockerfile.
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables
+#
+# THIS SECTION USED TO LIST ONLY `.env` AND `.env.local`, AND THE SERVICES DO
+# NOT USE EITHER NAME. Each service is started with
+# `dotenv_config_path=local.env` (the frontend with `env-cmd -f local.env`), so
+# the files that actually hold configuration are `local.env`, `dev.env` and
+# `prod.env` - none of which matched any pattern here. All three are therefore
+# committed, in every service, with live-looking API keys in them.
+#
+# `*.env` closes that. Note what it does NOT do: a pattern only stops git
+# tracking a file it is not ALREADY tracking. The env files already in the index
+# stay in the index until someone runs
+#
+#     git rm --cached <service>/{local,dev,prod}.env
+#
+# which removes them from git and LEAVES THEM ON DISK, so the running stack is
+# unaffected. That, plus rotating the keys, is the owner's call and is written
+# up in the root README under "Configuration and secrets".
+#
+# `*.env.example` and `.env.local.example` are the committed templates a clone
+# copies from, and are excluded from the exclusion.
+.env
+.env.local
+.env.*.local
+*.env
+# `.env.*` catches the framework-conventional names - .env.production,
+# .env.development, .env.test, .env.staging - which `*.env` does not match
+# because the extension comes first. Only the frontend's own .gitignore had
+# this; a `.env.production` dropped in any backend would have been committable.
+.env.*
+# Editor and hand-made backups. `*.env` does not match `local.env.bak`, and a
+# `cryptodex-spotapi/local.env.bak` really was committed
+# once - it is still in the history.
+*.env.bak
+*.env.backup
+*.env.orig
+*.env.save
+*.env.old
+# These negations must stay LAST: `.env.*` above would otherwise re-ignore the
+# committed templates.
+!*.env.example
+!.env.example
+!.env.local.example
+!.env.template
+!.env.webhook.template
+
+# Database
+mongodb-data*/
+dump.rdb
+# Redis' append-only log. Enabled because the balance ledger is only a source of
+# truth if redis persists it - see docs/architecture/06-ledger-as-source-of-truth.md.
+appendonlydir/
+*.aof
+*.sql
+*.sqlite
+*.sqlite3
+
+# Redis
+dump.rdb
+appendonly.aof
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+/tmp/
+/tmp
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.nuxt/
+.vuepress/dist/
+.server/
+.client/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.cache/
+.parcel-cache/
+.pnp/
+.pnp.js
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Turbo
+.turbo
+
+# Vercel
+.vercel
+
+# PM2
+.pm2
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Worker queues
+*.bull
+
+# Key material. Nothing in this repository needs any: the four services run as
+# one venue on one host and their gRPC channels are plaintext on 127.0.0.1
+# (see spotapi/grpc/server.js). 54 cert/key files under two other companies'
+# hostnames - 21 of them PEM private keys - were removed from the tree; these
+# rules stop a replacement being committed by accident. If this venue is ever
+# split across hosts and needs real credentials, generate them at deploy time
+# and keep them out of git.
+*.key
+*.pem
+*.crt
+*.csr
+*.p12
+*.pfx
+private/
+
+# Local runtime artefacts. `mongodb-data*/` and `dump.rdb` were already ignored;
+# the mongo log was not, so a `git add -A` would have committed 10 MB of query
+# log alongside the database it describes.
+mongodb.log
+mongodb.log.*
+
+# Playwright output. A 566 KB HTML report and a run-status file were tracked,
+# left over from an earlier session and matched by no rule.
+playwright-report/
+test-results/
+
+# Agent/editor local state
+.claude/
+.vscode/
+.idea/

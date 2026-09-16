@@ -1,0 +1,2979 @@
+/* THE HEADER STAT STRIP RUNS THE FULL WIDTH OF THE PAGE.
+   ======================================================
+   It used to sit in the FIRST COLUMN only - `"marketinfo orderbook orderform"`
+   - so its width was whatever was left after the Order Book and the order form
+   had taken 320px each. Measured in Chromium at 1440x900 on /spot/BTC_USD,
+   before this change:
+
+     .marketinfo_div_right  clientWidth 448   scrollWidth 572
+     "24H Turnover (USD)"   laid out at x 786..892, i.e. 8px PAST the strip's
+                            own right edge (778) and straight into the Order
+                            Book panel, which starts at x 795
+
+   `.ticker_list` carries `overflow-x: auto` with `scrollbar-width: none`, so
+   the sixth stat was not merely narrow - it was clipped away entirely, with no
+   scrollbar, no arrow and nothing on a desktop pointer to reveal it. The fifth,
+   "24H Volume (BTC)", was cut mid-value at the boundary. A number the header
+   claims to publish and no user can read is worse than one that is not there.
+
+   Widening the columns cannot fix it: the strip needs 572px for its stats and
+   the first column is ~448px after the two fixed 320px panels, and both of
+   those have their own minimums. What fixes it is giving the row to the strip,
+   which is what every layout below 1200px in this file ALREADY does
+   (`"marketinfo marketinfo"` in the max-width:1199px block) and what the venue
+   this UI is modelled on does at every width. The strip now gets ~1420px at
+   1440 and the same six cells occupy 890px of it, with room to spare down to
+   the 1200px edge of this breakpoint.
+
+   COST, STATED: the Order Book and the order form no longer span rows 1-2, so
+   they are 60px + one 5px gap shorter (665px -> 600px at 1440). Nothing inside
+   either is fixed-height - both are `height: 100%` flex columns - and the
+   order book's row count is driven by its own container, so it reflows rather
+   than clipping. Verified at 1920, 1600, 1440 and 1280. The 390px layout is
+   untouched: it is governed by the max-width:767px block further down, which
+   overrides this template entirely. */
+.trade_wrapper {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  display: grid;
+  gap: 5px;
+  /* The order book and the ticket run the FULL height of the trading area,
+     starting level with the market header rather than 60px below it - the header
+     describes the CHART, so it sits over the chart column only. Both panels gain
+     that 60px (plus the 5px gap), which is where the extra ladder rows and the
+     taller ticket come from. */
+  grid-template:
+    "marketinfo orderbook orderform" 60px
+    "chart orderbook orderform" minmax(500px, 600px)
+    "basictable basictable basictable" minmax(300px, auto);
+  grid-template-columns: minmax(600px, 1fr) minmax(300px, 320px) minmax(300px, 320px);
+  grid-template-rows: 60px minmax(500px, 600px) minmax(300px, auto);
+  padding: 0;
+}
+
+.feeDetails {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+.feeDetails li {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+}
+
+.orderbook_wrap {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  width: 100%;
+  height: 100%;
+  grid-area: orderbook;
+  position: relative;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #0f0f10;
+  display: flex;
+  flex-direction: column;
+}
+
+.orderbook_wrap_inner {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  background: #0f0f10;
+  overflow: hidden;
+}
+
+.orderbook_header {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  justify-content: space-between;
+  border-bottom: 1px solid #29292b;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.orderbook_header .orderbook_header_tips {
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+}
+
+.orderbook_header_tips button {
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: rgba(178, 181, 190, 0.7);
+  font-size: 12px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.orderbook_header_tips button:hover {
+  color: rgba(178, 181, 190, 1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.orderbook_header_tips button.active_button {
+  color: #26a69a;
+  background: rgba(38, 166, 154, 0.15);
+}
+
+.orderbook_header_tips button + button {
+  margin-left: 12px;
+}
+
+.orderbook_tickSize {
+  position: initial;
+  right: 0px;
+  flex: 1.2 1 0%;
+  padding-left: 4px;
+  padding-right: 4px;
+  margin-left: 4px;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
+}
+
+.orderbook_tickSize select {
+  border: none;
+  background: transparent url("/assets/images/caret_arrow_icon.png") no-repeat
+    right 0.75rem center;
+  color: var(--color-9);
+  font-size: var(--font-6);
+  box-shadow: none !important;
+}
+
+.orderbook_tbheader {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 12px;
+  margin-bottom: 0;
+  min-height: 32px;
+  flex-shrink: 0;
+}
+
+.orderlist_container {
+  display: flex;
+  flex: 1 1 0%;
+  padding: 0;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.orderbook_list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  overflow: hidden;
+  min-height: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.orderbook_ticker {
+  display: flex;
+  padding: 6px 12px;
+  height: 36px;
+  -webkit-box-align: center;
+  align-items: center;
+  background: #0f0f10;
+  justify-content: space-between;
+  font-size: 14px;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+/* Orderbook Buy/Ask Ratio */
+.orderbook_ratio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 120px;
+  flex: 1;
+}
+
+.orderbook_ratio_bar {
+  display: flex;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.orderbook_ratio_bid {
+  background-color: var(--green);
+}
+
+.orderbook_ratio_ask {
+  background-color: var(--red);
+}
+
+.orderbook_ratio_text {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 11px;
+  color: #707a8a;
+}
+
+.orderbook_ratio_bid_label,
+.orderbook_ratio_ask_label {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.orderbook_ratio_bid_label {
+  color: var(--green);
+}
+
+.orderbook_ratio_ask_label {
+  color: var(--red);
+  justify-content: flex-end;
+}
+
+.orderbook_ratio_percent {
+  font-weight: 500;
+}
+
+.orderbook_tbheader .content {
+  display: flex;
+  height: 20px;
+  -webkit-box-pack: justify;
+  justify-content: space-between;
+  -webkit-box-align: center;
+  align-items: center;
+  font-size: 12px;
+  color: #707a8a;
+}
+
+.orderbook_tbheader .item {
+  display: flex;
+  flex: 1 1 0%;
+  color: #9e9e9e;
+  font-size: 12px;
+}
+
+.orderbook_progress .row_content {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+.orderbook_progress {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: block;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.orderbook_list .row_content {
+  display: flex;
+  box-sizing: border-box;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  cursor: pointer;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0 12px;
+  line-height: normal;
+}
+
+.orderbook_list .text {
+  font-size: 12px;
+  margin-left: 0px;
+  flex: 1 1 0%;
+  text-align: right;
+  color: var(--text_white);
+  cursor: pointer;
+  font-weight: 300;
+}
+
+.orderbook_list .progress_container {
+  height: 22px;
+}
+
+.orderlist_container.show_sell {
+  padding-bottom: 0;
+}
+
+.orderlist_container.show_sell .orderbook_bid {
+  display: none;
+}
+
+.orderbook_ask .orderbook_list_container,
+.orderbook_bid .orderbook_list_container {
+  display: grid !important;
+  grid-template-rows: repeat(8, 1fr);
+  gap: 0 !important;
+  row-gap: 0 !important;
+  padding: 0 8px !important;
+  margin: 0 !important;
+}
+
+.orderbook_ask {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.orderbook_bid {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.orderlist_container.show_sell .orderbook_list_container {
+  height: 100%;
+}
+
+.orderlist_container.show_buy {
+  padding-bottom: 0;
+}
+
+.orderlist_container.show_buy .orderbook_ask {
+  display: none;
+}
+
+.orderlist_container.show_buy .orderbook_list_container {
+  height: 100%;
+}
+
+.progress_container {
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  width: 100%;
+  -webkit-box-align: center;
+  align-items: center;
+  animation: 0.3s ease-out 0s 1 normal none running none;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.orderbook_list .ask_bar {
+  background: rgba(254, 83, 91, 0.2);
+}
+
+/* .orderbook_list .progress_bar {
+  height: 22px;
+}
+.orderbook_progress .progress_bar {
+  position: absolute;
+  right: 0px;
+  z-index: 1;
+  height: 20px;
+  opacity: 0.1;
+  width: 100%;
+  left: 100%;
+} */
+.orderbook_list .ask_light,
+.orderbook_list .bid_light {
+  font-size: 12px;
+  flex: 1 1 0%;
+  text-align: left;
+}
+
+.orderbook_list .ask_light {
+  color: var(--red);
+}
+
+.orderbook_list .bid_light {
+  color: var(--green);
+}
+
+.orderbook_ticker .yellow {
+  color: var(--yellow);
+}
+
+.orderbook_ticker .status_sell {
+  color: var(--red);
+}
+
+.orderbook_ticker .status_green,
+.orderbook_ticker .status_buy {
+  color: var(--green);
+}
+
+.orderbook_ticker .status_primary {
+  color: #1e2329;
+}
+
+.orderbook_ticker .markPrice {
+  flex: 1 1 0%;
+  display: inline-block;
+  font-size: 12px;
+  text-align: left;
+  color: #707a8a;
+}
+
+.orderbook_ticker .more {
+  color: #707a8a;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.orderbook_ticker .arrow_icon {
+  font-size: 16px;
+}
+
+.orderbook_list .bid_bar {
+  background: rgba(56, 173, 123, 0.2);
+}
+
+.orderbook_list_container {
+  position: relative;
+  height: 100%;
+  overflow: hidden !important;
+  will-change: transform;
+  direction: ltr;
+  display: grid !important;
+  grid-template-rows: repeat(8, 1fr);
+  padding: 0 8px !important;
+  min-height: 0 !important;
+  gap: 0 !important;
+  row-gap: 0 !important;
+  column-gap: 0 !important;
+}
+
+.chart_wrapper {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  width: 100%;
+  height: 100%;
+  grid-area: chart;
+  position: relative;
+  overflow: hidden;
+  border: none !important;
+  outline: none !important;
+}
+
+.chart_inner {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 5px;
+  overflow: hidden;
+  border: none !important;
+  outline: none !important;
+}
+
+.chart_inner img {
+  width: 100%;
+  height: 410px;
+}
+
+.chart_top {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  border-bottom: 1px solid rgb(238, 240, 242);
+  min-height: 40px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.marketinfo_wrap {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  width: 100%;
+  height: 60px;
+  background-color: #0f0f10;
+  grid-area: marketinfo;
+  font-size: 14px;
+  color: rgb(30, 35, 41);
+  padding: 8px 12px;
+  border-radius: 5px;
+}
+
+/* `.depthChart_mob` was here. Its only consumer was components/spot/
+   DepthChartMob.js, rendered by pages/depthChart - a webview embed for a mobile
+   app this project does not have, unreachable from any link in the product, and
+   stuck on "Loading the order book" forever. Both are deleted; so is this. */
+
+.marketinfo_inner {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 100%;
+}
+
+.marketinfo_div {
+  min-width: 0px;
+  display: flex;
+  box-sizing: border-box;
+  margin: 0px;
+  align-items: center;
+  gap: 16px;
+  flex: 0 0 auto;
+}
+
+.marketinfo_div_left {
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 12px;
+}
+
+.marketinfo_div_left_layout {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.marketinfo_pair_wrap {
+  display: flex;
+  align-items: center;
+}
+
+.marketinfo_pair_div {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.marketinfo_pair_div img {
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.coin_logo_img {
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+  display: block;
+  transform: translateY(-2px);
+}
+
+.marketinfo_pair_wrap .drp_btn {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px !important;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.marketinfo_pair_wrap .drp_btn:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.marketinfo_pair_wrap .drp_btn + div {
+  /* min-height: 300px;
+  width: 280px; */
+  padding: 0;
+  border: 1px solid #272727;
+}
+
+.marketinfo_pair_wrap .drp_btn + div .fixed {
+  position: unset;
+  min-height: 300px;
+  width: 280px;
+  border: none;
+}
+
+.marketinfo_pair_wrap .drp_btn + div .close {
+  display: none;
+}
+
+.marketinfo_pair_wrap .drp_btn .marketinfo_pair_div {
+  margin-right: 10px;
+}
+
+.table_box_dropdown {
+  overflow-y: auto !important;
+  height: 200px !important;
+}
+.marketinfo_pair_price {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  display: flex;
+  line-height: 17px;
+  font-size: 12px;
+}
+
+.marketinfo_pair_div h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text_white);
+  margin: 0;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.marketinfo_div_left .now_price {
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+}
+
+.marketinfo_div_left .show_price {
+  font-size: 16px;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+}
+
+.marketinfo_div_left .sub_price {
+  font-size: 12px;
+  color: #1e2329;
+  line-height: inherit;
+}
+
+.marketinfo_div_right {
+  flex: 1 1 0%;
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-width: 0px;
+  /* SCROLL, don't clip. This strip carries six figures and it no longer has the
+     whole viewport - the header is confined to the chart column now. `hidden`
+     would silently amputate 24H Volume and Turnover on a narrower window with no
+     sign anything was missing; this keeps them reachable. The bar itself is
+     hidden because the strip is short and a visible one would eat its height. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.marketinfo_div_right::-webkit-scrollbar {
+  display: none;
+}
+
+.tickerlist_container {
+  display: flex;
+  flex-flow: row nowrap;
+  box-sizing: border-box;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* The six ticker cells have to fit the market-info bar, which is only as wide
+   as the chart column. At 24px gaps and 16px side padding the row measured
+   673px against a 612px track at a 1600px viewport, so the last cell — 24H
+   Turnover — was cut through its label and its value with no scrollbar to
+   reveal it. The row still scrolls on genuinely narrow screens; it just no
+   longer needs to at desktop widths. */
+.ticker_list {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  padding: 0 10px;
+}
+
+@media (max-width: 1799px) {
+  .ticker_list {
+    gap: 12px;
+  }
+
+  .ticker_list .tickeritem_label {
+    font-size: 11px;
+  }
+
+  .ticker_list .tickerprice_text {
+    font-size: 13px;
+  }
+}
+
+.ticker_list::-webkit-scrollbar {
+  display: none;
+}
+
+.ticker_list > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.tickeritem_label {
+  font-size: 12px;
+  color: #848e9c;
+  font-weight: 400;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.tickerprice_text {
+  font-size: 14px;
+  color: var(--text_white);
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.tickerprice_text.red {
+  color: var(--red) !important;
+}
+
+.tickerprice_text.green {
+  color: var(--green) !important;
+}
+
+/* Main price display next to pair selector */
+.marketInfoMainPrice {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text_white);
+  white-space: nowrap;
+  padding-right: 16px;
+  border-right: 1px solid #29292b;
+}
+
+/* Scrollable ticker wrapper with gradient fade */
+.tickerScrollWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tickerScrollWrapper::before,
+.tickerScrollWrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tickerScrollWrapper::before {
+  left: 0;
+  background: linear-gradient(90deg, #0f0f10 0%, transparent 100%);
+}
+
+.tickerScrollWrapper::after {
+  right: 0;
+  background: linear-gradient(270deg, #0f0f10 0%, transparent 100%);
+}
+
+.orderform_wrapper {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  grid-area: orderform;
+  background-color: #0f0f10;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.tradingfee_alert {
+  margin: 0px;
+  min-width: 0px;
+  display: flex;
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.tradingfee_alert p {
+  margin-bottom: 0;
+}
+
+.spot_title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--color-7);
+}
+
+.spot_title h2 {
+  color: #001f32;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.orderform_bookwrap {
+  display: flex;
+  padding: 10px;
+  gap: 10px;
+  flex: 1 1 0%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-direction: column;
+}
+
+.orderform_bookwrap_inner {
+  flex: 1 1 0%;
+}
+
+.ordertab {
+  padding: 7px 10px;
+}
+
+.ordertab .right_top {
+  font-size: 13px;
+}
+
+.right_top {
+  padding: 0 10px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ordertab .right_top span,
+.right_top span {
+  color: #9e9e9e;
+}
+
+
+.order_buy_btn,
+.order_sell_btn {
+  color: #ffffff;
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 7px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: 0.2s all;
+}
+
+.order_buy_btn {
+  background-color: #0bba74;
+}
+
+.order_sell_btn {
+  background-color: #ff7777;
+}
+
+.order_buy_btn:hover {
+  background-color: var(--green);
+}
+
+.chart_inner_div {
+  height: 100%;
+  min-height: 500px;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.order_sell_btn:hover {
+  background-color: var(--red);
+}
+
+.place_order_bal {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.place_order_bal label {
+  color: #9e9e9e;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.place_order_bal span {
+  color: #fff;
+  margin-left: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.place_order_bal span small {
+  color: #9e9e9e;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.place_order_bal i {
+  color: var(--color-3);
+  margin-left: 12px;
+  font-size: var(--font-7);
+  cursor: pointer;
+}
+
+.trades_wrapper {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  width: 100%;
+  height: 100%;
+  grid-area: trades / trades / trades / trades;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-bottom: 16px;
+  background-color: rgb(250, 250, 250);
+  z-index: auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.market_trade_top {
+  display: flex;
+}
+
+.market_trade_top > div {
+  flex: 1 1 0%;
+  font-size: var(--font-7);
+  display: block;
+  color: var(--color-17);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market_trade_wrap {
+  box-sizing: border-box;
+  min-width: 0px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.market_trade_bottom {
+  display: flex;
+  flex-direction: column;
+}
+
+.market_trade_list {
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: justify;
+  justify-content: space-between;
+  flex: 1 1 0%;
+}
+
+.market_trade_list > div {
+  flex: 1 1 0%;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+  height: 20px;
+}
+
+.market_trade_top > div:last-child,
+.market_trade_list > div:last-child {
+  margin-right: 12px;
+}
+
+.market_pair {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  padding-top: 16px;
+  padding-left: 16px;
+  padding-right: 16px;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(250, 250, 250);
+  grid-area: market / market / market / market;
+}
+
+.market_activity {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(250, 250, 250);
+  grid-area: marketActivity / marketActivity / marketActivity / marketActivity;
+}
+
+.market_activity_list {
+  display: flex;
+  padding: 5px 0;
+  align-items: center;
+  -webkit-box-pack: justify;
+  justify-content: space-between;
+  text-decoration: none;
+}
+
+.market_activity_list p {
+  margin-bottom: 0;
+  color: var(--color-9);
+  font-size: var(--font-7);
+}
+
+.market_activity_list span {
+  display: block;
+  color: var(--color-17);
+  font-size: var(--font-7);
+}
+
+.market_activity_list div:first-child {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  flex: 1 1 0%;
+}
+
+.market_activity_list div:nth-child(2) {
+  box-sizing: border-box;
+  margin: 0px;
+  flex: 1 1 0%;
+  text-align: right;
+  overflow: hidden;
+  min-width: 96px;
+}
+
+.market_activity_list div:nth-child(3) {
+  box-sizing: border-box;
+  margin: 0px;
+  display: flex;
+  flex: 1 1 0%;
+  -webkit-box-pack: end;
+  justify-content: flex-end;
+  min-width: 54px;
+}
+
+.activity_btn {
+  border-radius: 4px;
+  border: none;
+  padding: 2px 20px;
+  min-width: 72px;
+}
+
+.activity_btn_green {
+  background-color: var(--color-20);
+}
+
+.activity_btn_red {
+  background-color: var(--color-21);
+}
+
+.market_activity_wrap {
+  padding: 0 16px;
+}
+
+.history_table {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  background-color: #0f0f10;
+  grid-area: basictable;
+  font-size: 14px;
+  color: rgb(30, 35, 41);
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.history_table_wrap {
+  padding-bottom: 0;
+  z-index: auto;
+  position: relative;
+  flex: 1 1 0%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.history_table .order_tab {
+  padding: 5px 5px 0;
+  border-bottom: none;
+}
+
+.history_table .order_tab a .history_table .box {
+  padding: 10px 0px;
+}
+
+[data-theme="light_theme"] .orderbook_flex {
+  border-bottom: 1px solid #e7e5e5;
+}
+
+.table_empty {
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transfer_btn {
+  color: var(--color-3);
+  font-size: var(--font-6);
+  font-weight: var(--font-medium);
+  border: none;
+  background: transparent;
+}
+
+.spot_history_table {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.spot_history_table thead th,
+.spot_history_table tbody td {
+  font-size: 13px;
+  color: #9e9e9e;
+  font-weight: 500;
+  border: 0;
+  background: #0f0f10;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.spot_history_table tbody td {
+  border: none;
+}
+
+.order_dropdown_new {
+  background: #222222 !important;
+  border: 1px solid #222222 !important;
+  color: #fff !important;
+  width: 100% !important;
+  text-align: justify !important;
+  margin-left: 0 !important;
+  font-size: 16px !important;
+  padding: 10px !important;
+  position: relative;
+}
+
+/* two input text  */
+.form_box .input_grp {
+  border-radius: 10px;
+  background: #222222;
+  border: 1px solid #222222;
+  margin-top: 15px;
+}
+
+.form_box .input_text {
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9e9e9e;
+  padding: 4px 10px;
+}
+
+.form_box .input_text.dark {
+  color: #fff;
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.form_box .input_box {
+  background: transparent;
+  border: 0;
+  color: var(--text_white);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+}
+
+.tot_flx {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tot_flx span {
+  color: #9e9e9e;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.tot_flx p {
+  color: #fff;
+  margin-left: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tot_flx p span {
+  color: #9e9e9e;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.form_box .input_box:focus {
+  box-shadow: none;
+}
+
+.market_pair_info {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  width: 100%;
+  height: 100%;
+  background-color: #0f0f10;
+  border-radius: 5px;
+  grid-area: market_pair / market_pair / market_pair / market_pair;
+  padding-bottom: 5px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.market_pair_info .close {
+  display: none;
+  background: var(--spot_headers);
+  padding-top: 5px;
+  padding-right: 10px;
+  width: 100%;
+  text-align: end;
+}
+
+.market_pair_info .close img {
+  filter: invert(1) brightness(0.6);
+  cursor: pointer;
+}
+
+.market_pair_info .box {
+  overflow: hidden;
+  height: 100%;
+}
+
+.market_pair_info .head_box {
+  display: flex;
+  align-items: center;
+  padding: 13.3px 15px;
+  border-bottom: 1px solid #29292b;
+}
+
+.market_pair_info .head_box input {
+  background: var(--box_border);
+  border: 1px solid var(--box_border);
+  box-shadow: none !important;
+  color: var(--text_white);
+}
+
+.market_pair_info .head_box input::placeholder {
+  color: var(--text_grey1);
+  font-size: 13px;
+}
+
+.market_pair_info .head_box .drp_btn {
+  font-size: 13px;
+  color: #9e9e9e;
+}
+
+.market_pair_info .head_box .drp_btn button {
+  background: var(--text_black);
+  border: 1px solid var(--box_border);
+  font-size: 13px;
+  color: #9e9e9e;
+  width: 88px;
+}
+
+.market_pair_info .head_box .drp_btn button::after {
+  border-top: 0.4em solid;
+  border-right: 0.4em solid transparent;
+  border-left: 0.4em solid transparent;
+}
+
+.market_pair_info .head_box .drp_btn button + div {
+  background: var(--text_black);
+  border: 1px solid var(--box_border);
+  font-size: 13px;
+}
+
+.market_pair_info .head_box .drp_btn button + div a {
+  color: #9e9e9e;
+}
+
+.market_pair_info .head_box .drp_btn button + div a:hover {
+  background: var(--black_transparent) !important;
+}
+
+.market_pair_info .pairs {
+  display: flex;
+  align-items: center;
+  padding: 9px 15px;
+  background: var(--order_tic);
+  overflow-x: auto;
+}
+
+.market_pair_info .pairs h6 {
+  margin-right: 25px;
+  font-size: 13px;
+  color: var(--text_white);
+  font-weight: 600;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.market_pair_info .pairs h6.active {
+  color: var(--yellow);
+}
+
+/* THE TAPE FILLS ITS PANEL, AND THE ROWS PAST THE FOLD ARE REACHABLE.
+   ==================================================================
+   This was `height: 336px; overflow: hidden` inside a parent that is
+   `height: 100%`. Two consequences, both measured on the running app:
+   336px at a 24px row height shows ~13 rows, and the gap between 336px and
+   the real column height was 234px of dead space that no number of rows
+   could fill - forcing 60 rows into the live DOM grew the table to 1460px
+   while the box stayed 336px and the dead band stayed exactly 234px.
+   `overflow: hidden` (rather than auto) meant the other ~47 rows were
+   rendered, invisible and unreachable: a wheel over the tape scrolled the
+   page instead.
+   It now fills what its parent gives it and scrolls the remainder. The
+   breakpoints below keep a definite height on purpose - see the note there. */
+.market_pair_info .table_box {
+  /* No TOP padding: the sticky header below must sit flush against the
+     scrollport, or rows scroll through the gap above it. The 5px it gives up
+     is handed to the header's own padding, so the spacing is unchanged. */
+  padding: 0 15px 5px;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3d transparent;
+}
+
+.market_pair_info .table_box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.market_pair_info .table_box::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.market_pair_info .table_box::-webkit-scrollbar-thumb {
+  background: #3a3a3d;
+  border-radius: 3px;
+}
+
+.market_pair_info .table_box::-webkit-scrollbar-thumb:hover {
+  background: #4d4d51;
+}
+
+/* The column headings stay put while the tape scrolls under them. Before
+   this box scrolled at all they could not be lost; now that it does, an
+   unpinned header would leave three unlabelled columns of numbers. The
+   background must be opaque - the rows pass directly beneath it. */
+.market_pair_info .table_box thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #0f0f10;
+  padding: 5px 0 4px;
+}
+
+.market_pair_info .table_box table {
+  margin-bottom: 0;
+}
+
+.market_pair_info .table_box tr {
+  cursor: pointer;
+}
+
+.market_pair_info .table_box tr:hover td {
+  background: #fff7f0;
+}
+
+.market_pair_info th {
+  color: #9e9e9e;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.market_pair_info th i {
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+.market_pair_info th:not(:nth-child(1)),
+.market_pair_info td:not(:nth-child(1)) {
+  text-align: end;
+}
+
+.market_pair_info td {
+  padding: 3px 0;
+  font-size: 12px;
+  background: transparent;
+  border: 0;
+  color: var(--text_white);
+}
+
+.market_pair_info td.red {
+  color: var(--red);
+}
+
+.market_pair_info td.green {
+  color: var(--green);
+}
+
+.market_pair_info td i {
+  color: #9e9e9e;
+  margin-right: 5px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.market_pair_info td i.selected {
+  color: var(--yellow);
+}
+
+.market_pair_info td i:hover {
+  color: var(--yellow);
+}
+
+.recent_trade_wrap {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  width: 100%;
+  grid-area: recenttrade;
+  height: 100%;
+  /* flex-* is inert in the mobile grid layout and load-bearing inside
+     .ob_trades_host on desktop; min-height:0 lets the table scroll instead of
+     forcing this box past the panel. */
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pair_crypto {
+  box-sizing: border-box;
+  margin: 0px;
+  min-width: 0px;
+  width: 100%;
+  grid-area: pair_crypto;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pair_crypto td:nth-child(1) {
+  color: #9e9e9e;
+}
+
+.buy_sell_tab {
+  display: flex;
+  gap: 10px;
+  padding: 10px 10px 0;
+}
+
+.buy_sell_tab button {
+  width: 100%;
+  color: var(--dark-01) !important;
+  background: var(--grey-09) !important;
+  border: 1px solid var(--grey-09) !important;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 26px;
+  text-transform: capitalize;
+  padding: 2px 10px;
+  border-radius: 5px;
+}
+
+.buy_sell_tab button.buy_tab.active {
+  background: var(--green) !important;
+  color: var(--white) !important;
+}
+
+.buy_sell_tab button.sell_tab.active {
+  background: var(--red) !important;
+  color: var(--white) !important;
+}
+
+/* Ask bars (sells): right-anchored by default - grow from right */
+.orderbook_tbody_row_bar_sell {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  left: auto;
+  z-index: 1;
+  border-radius: 0;
+  transform: none;
+  -webkit-transition: width 0.25s ease-in-out;
+  transition: width 0.25s ease-in-out;
+}
+
+/* Bid bars (buys): left-anchored by default - grow from left */
+.orderbook_tbody_row_bar_buy {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: auto;
+  z-index: 1;
+  border-radius: 0;
+  transform: none;
+  -webkit-transition: width 0.25s ease-in-out;
+  transition: width 0.25s ease-in-out;
+}
+
+.orderbook_list_container .orderbook_tbody_row_bar_sell {
+  background: rgba(255, 119, 119, 0.2);
+}
+
+.orderbook_list_container .orderbook_tbody_row_bar_buy {
+  background: rgba(11, 186, 116, 0.2);
+}
+
+.orderbook_flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #29292b;
+  gap: 12px;
+  padding-right: 12px;
+}
+
+.pair_checkbox {
+  color: #fff;
+  min-width: 132px;
+}
+
+.pair_checkbox input {
+  box-shadow: none !important;
+  background-color: #222 !important;
+  border-color: #222 !important;
+  outline: none !important;
+}
+
+.pair_checkbox input:checked {
+  background-color: #d5813a !important;
+  border-color: #d5813a !important;
+}
+
+.spot_head {
+  margin-bottom: 0;
+}
+
+.switch_btn_grp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.switch_btn_grp button {
+  flex: 1 1;
+  background: #070707;
+  color: #fff;
+  border: 1px solid #070707;
+  padding: 15px;
+  border-radius: 6px;
+  position: relative;
+}
+
+.switch_btn_grp button.selected::before {
+  content: "";
+  background: url("../public/assets/images/tic_mark_sandal.png") no-repeat left
+    center;
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  left: 20px;
+  top: 18px;
+}
+
+.switch_btn_grp button.selected {
+  border: 1px solid #1d94ff;
+}
+
+.switch_note {
+  background: #18181a;
+  margin: 30px 0;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.switch_note p {
+  margin-bottom: 0;
+}
+
+.order_dropdown_new_head {
+  padding: 0 10px !important;
+  text-align: end;
+}
+
+.order_dropdown_new::after {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  margin-left: 0;
+}
+
+.order_dropdown_new {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  width: 160px !important;
+  margin-left: 0 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 0 5px !important;
+  position: relative;
+}
+
+.form_button_box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trade_wrapper_mobile {
+  display: none;
+}
+.order_btn_mobile_wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 12px;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #0f0f10;
+}
+.trade_wrapper_mobile .order_tab {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+/* Light Theme */
+[data-theme="light_theme"] .marketinfo_wrap {
+  border: 1px solid #eaeaea;
+  background-color: transparent;
+}
+
+[data-theme="light_theme"] .orderbook_wrap,
+[data-theme="light_theme"] .orderform_wrapper,
+[data-theme="light_theme"] .market_pair_info,
+[data-theme="light_theme"] .history_table {
+  border: 1px solid #eaeaea;
+  background: transparent;
+}
+
+/* [data-theme="light_theme"] .market_pair_info {
+  border: 0;
+} */
+
+[data-theme="light_theme"] .trade_wrapper .spot_head {
+  color: #070707;
+}
+
+[data-theme="light_theme"] .orderbook_wrap_inner {
+  background: transparent;
+}
+
+[data-theme="light_theme"] .marketinfo_pair_wrap .drp_btn + div {
+  border: 1px solid #e0e0e0;
+}
+
+[data-theme="light_theme"] .place_order_bal label,
+[data-theme="light_theme"] .place_order_bal span small,
+[data-theme="light_theme"] .ot_flx span,
+[data-theme="light_theme"] .tot_flx p span,
+[data-theme="light_theme"] .ordertab [data-theme="light_theme"] .right_top span,
+[data-theme="light_theme"] .form_box .input_text.dark,
+[data-theme="light_theme"] .form_box .input_text,
+[data-theme="light_theme"] .market_pair_info td {
+  color: #3e3b39;
+}
+
+[data-theme="light_theme"] .place_order_bal span,
+[data-theme="light_theme"] .tot_flx p,
+[data-theme="light_theme"] .right_top,
+[data-theme="light_theme"] .market_pair_info th,
+[data-theme="light_theme"] .orderbook_tbheader .item {
+  color: #070707;
+}
+
+/* The sticky tape header needs an OPAQUE background - the rows scroll under
+   it - and the dark value it carries by default would be a black bar here.
+   Every ancestor in this chain is `background: transparent` under
+   light_theme, so there is no panel colour to borrow; white is the value the
+   rest of the light theme implies.
+   NOT VERIFIED VISUALLY: light_theme currently leaves the page body at
+   #070707, so this screen does not actually render light (its own th colour
+   rule already paints near-black text on that near-black body). This rule is
+   correct by construction, and is here so the sticky header does not bake in
+   a dark-only assumption. */
+[data-theme="light_theme"] .market_pair_info .table_box thead th {
+  background: #ffffff;
+}
+
+[data-theme="light_theme"] .form_box .input_grp {
+  border: 1px solid #cfcbc9;
+  background: transparent;
+}
+
+[data-theme="light_theme"] .orderbook_ticker {
+  background: #f7f7f7;
+}
+[data-theme="light_theme"] .order_btn_mobile_wrapper {
+  background: #f7f7f7;
+}
+
+[data-theme="light_theme"] .orderbook_header,
+[data-theme="light_theme"] .market_pair_info .head_box,
+[data-theme="light_theme"] .history_table .order_tab {
+  border-bottom: 1px solid #e7e5e5;
+}
+
+[data-theme="light_theme"] .spot_history_table thead th,
+[data-theme="light_theme"] .spot_history_table tbody td {
+  background: transparent;
+  color: #3e3b39;
+}
+
+[data-theme="light_theme"] .pair_checkbox {
+  color: #070707;
+}
+
+[data-theme="light_theme"] .pair_checkbox input {
+  background-color: #fff !important;
+  border-color: #cfcbc9 !important;
+}
+
+[data-theme="light_theme"] .pair_checkbox input:checked {
+  background-color: #1d94ff !important;
+  border-color: #1d94ff !important;
+}
+
+[data-theme="light_theme"] .tickerprice_text {
+  color: #3e3b39 !important;
+}
+
+[data-theme="light_theme"] .tickeritem_label {
+  color: #070707;
+}
+
+[data-theme="light_theme"] .tickerprice_text.red {
+  color: var(--red) !important;
+}
+
+[data-theme="light_theme"] .tickerprice_text.green {
+  color: var(--green) !important;
+}
+
+[data-theme="light_theme"] .market_pair_info td.green {
+  color: var(--green) !important;
+}
+
+[data-theme="light_theme"] .market_pair_info td.red {
+  color: var(--red) !important;
+}
+
+[data-theme="dark_theme"] .market_pair_info .table_box tr:hover td {
+  background: #29292b;
+}
+
+[data-theme="light_theme"] .switch_btn_grp button {
+  background: #ffecde;
+  color: #070707;
+  border: 1px solid #e7e5e5;
+}
+
+[data-theme="light_theme"] .switch_btn_grp button.selected {
+  border: 1px solid #1d94ff;
+}
+
+[data-theme="light_theme"] .switch_note {
+  background: #ffecde;
+}
+
+[data-theme="light_theme"] .order_dropdown_new {
+  background: transparent !important;
+  color: #3e3b39 !important;
+}
+
+@media screen and (max-width: 1400px) {
+  .trade_wrapper {
+    grid-template-columns: minmax(500px, 1fr) minmax(280px, 310px) minmax(280px, 310px);
+  }
+}
+
+/* Media Queries */
+@media screen and (min-width: 767px) {
+  .orderbook_header {
+    -webkit-box-align: center;
+    align-items: center;
+  }
+
+  .orderbook_tickSize {
+    position: absolute;
+    flex: 0 0 auto;
+    padding-left: 0px;
+    padding-right: 0px;
+    margin-left: 0px;
+    -webkit-box-align: initial;
+    align-items: initial;
+    -webkit-box-pack: initial;
+    justify-content: initial;
+  }
+
+  .orderbook_tbheader {
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+
+  .orderbook_list .row_content {
+    line-height: normal !important;
+    padding: 0 12px !important;
+    height: 100% !important;
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+  }
+
+  .orderbook_list .text {
+    margin-left: 4px;
+  }
+
+  .orderbook_list .progress_container {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  .orderbook_progress {
+    height: 100% !important;
+  }
+
+  /* .orderbook_list .progress_bar {
+    height: 20px;
+  } */
+  .marketinfo_pair_div {
+    margin-right: 24px;
+    margin-left: 4px;
+    border-right-width: 1px;
+  }
+}
+
+.trade_wrapper .spot_head {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.orderbook_list_container {
+  height: 100%;
+}
+
+.orderlist_container.show_sell .orderbook_list_container,
+.orderlist_container.show_buy .orderbook_list_container {
+  height: 100%;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+/**
+ * 1. Adjust this to size
+ */
+
+.switch {
+  display: inline-block;
+  font-size: 20px; /* 1 */
+  height: 1em;
+  width: 2em;
+  background: #bdb9a6;
+  border-radius: 1em;
+}
+
+.switch div {
+  height: 1em;
+  width: 1em;
+  border-radius: 1em;
+  background: #fff;
+  box-shadow: 0 0.1em 0.3em rgba(0, 0, 0, 0.3);
+  -webkit-transition: all 300ms;
+  -moz-transition: all 300ms;
+  transition: all 300ms;
+}
+
+.switch input:checked + div {
+  -webkit-transform: translate3d(100%, 0, 0);
+  -moz-transform: translate3d(100%, 0, 0);
+  transform: translate3d(100%, 0, 0);
+}
+
+/* } */
+@media screen and (max-width: 1299px) {
+  .trade_wrapper {
+    grid-template-columns: 1fr 1fr 300px 280px;
+  }
+}
+
+@media screen and (max-width: 1199px) {
+  .orderform_bookwrap button {
+    font-size: 16px;
+    padding: 10px;
+  }
+
+  .form_box input {
+    padding-left: 0;
+    padding-right: 0;
+    font-size: 14px;
+  }
+
+  .trade_wrapper {
+    grid-template:
+      "marketinfo   marketinfo " auto
+      "orderform   chart " auto "orderbook   pair_crypto "
+      "orderbook   pair_crypto "
+      "orderbook   pair_crypto "
+      "basictable   basictable " 320px;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .orderbook_list_container {
+    width: 100%;
+  }
+
+  .orderbook_list_container {
+    height: 100%;
+  }
+
+  .orderlist_container.show_sell .orderbook_list_container,
+  .orderlist_container.show_buy .orderbook_list_container {
+    height: 100%;
+  }
+
+  /* Inside the mobile tab's fixed-height <Scrollbars>, so a definite height
+     is correct here - flex:1 has nothing to resolve against. `flex: none`
+     stops the desktop rule above from overriding it. */
+  .market_pair_info .table_box {
+    flex: none;
+    height: 666px;
+  }
+
+  .market_pair_info.fixed {
+    position: fixed;
+    width: fit-content;
+    z-index: 100;
+    bottom: 0;
+    grid-area: unset;
+    right: -100%;
+    border-radius: 0;
+    height: 100%;
+    transition: 0.5s;
+  }
+
+  .market_pair_info.show {
+    right: 0;
+    z-index: 1700;
+  }
+
+  .marketinfo_pair_div {
+    cursor: pointer;
+  }
+
+  .market_pair_info .close {
+    display: block;
+  }
+
+  /* THE SAME OVERFLOW THE 767px BLOCK WAS WRITTEN FOR, ONE BREAKPOINT UP.
+     `.ticker_list` picks up `flex-wrap: wrap` here, so between 768px and
+     1199px the stats occupy several rows inside a `.marketinfo_wrap` that is
+     still a hard `height: 60px`. Measured in Chromium at 768x900 on
+     /spot/BTC_USD before this rule: the stats block laid out at y 23..211
+     against a bar at y 87..147 - 64px escaping upward over the paper-trading
+     strip and 64px downward over the order form beneath it, the panel taking
+     the taps either way.
+
+     The bar sizes to its contents instead, which is exactly what the 767px
+     block already does and what the grid row here already allows: the
+     `"marketinfo marketinfo" auto` template above sizes this row to its
+     content, so nothing below it moves except downward, by the amount the bar
+     actually needs. */
+  .marketinfo_wrap {
+    height: auto;
+  }
+
+  .marketinfo_inner {
+    height: auto;
+  }
+
+  .ticker_list {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+@media screen and (max-width: 991px) {
+  .trade_wrapper {
+    grid-template:
+      "marketinfo   marketinfo " auto
+      "orderform   orderform "
+      "chart   chart  " 350px
+      "orderbook   pair_crypto "
+      "orderbook   pair_crypto "
+      "orderbook   pair_crypto "
+      "basictable   basictable " 320px;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .orderform_bookwrap {
+    flex-direction: column;
+  }
+
+  .orderform_bookwrap .orderform_bookwrap_inner:first-child {
+    padding-right: 0;
+    padding-bottom: 15px;
+  }
+
+  /* THE PHONE MARKET-INFO BAR. `.marketinfo_wrap` is a hard `height: 60px` —
+     the height of exactly one row of stats — while everything inside it grows
+     on a narrow screen: this rule used to stack the pair over the last price
+     (81px), and `.ticker_list` picks up `flex-wrap: wrap` below 1199px and,
+     below 600px, per-cell percentage widths and margins that leave room for
+     only ONE cell per line, making the stats column 402px tall.
+     `.marketinfo_inner` centres its children, so ~340px of overflow escaped
+     symmetrically: 171px UP over the navbar and the paper-trading strip, and
+     171px DOWN over the entire Chart / Order Book / Recent Trades / Trade
+     History tab row. The tabs were painted, and were the correct size, but the
+     stats panel lay on top of them and swallowed every tap — a LAYOUT failure
+     (content taller than a fixed box), not a paint order one, which is why no
+     amount of z-index would have helped.
+
+     The bar now sizes to its contents and lays them out as two honest rows:
+     pair + last price, then the stats strip. */
+  .marketinfo_wrap {
+    height: auto;
+  }
+
+  .marketinfo_inner {
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .marketinfo_div {
+    flex-direction: row;
+  }
+
+  /* One horizontally scrolling row, which is what `.ticker_list`'s own
+     `overflow-x: auto` and `white-space: nowrap` were always written for. */
+  .ticker_list {
+    flex-wrap: nowrap;
+  }
+
+  .tickerlist_container {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .tickeritem_label {
+    border-bottom: 3px solid transparent;
+  }
+
+  .marketinfo_div_left {
+    padding-bottom: 1px;
+  }
+
+  .history_table .order_tab {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    width: 100%;
+  }
+  .orderbook_flex {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-right: 0;
+  }
+  .trade_wrapper_desktop {
+    display: none;
+  }
+  .trade_wrapper_mobile {
+    display: block;
+    margin-bottom: 80px;
+  }
+  .marketinfo_pair_div img {
+    width: 32px;
+    height: 32px;
+  }
+  .marketinfo_pair_div h1 {
+    font-size: 16px;
+    margin-left: 8px;
+  }
+  .orderbook_list_container {
+    height: 100%;
+  }
+  .chart_wrapper {
+    height: 100%;
+  }
+
+  /* THE BLACK GAP UNDER THE PHONE CHART. `height: 100%` above resolves against
+     the Bootstrap tab pane, which has no height of its own, so the whole
+     percentage chain collapses to `auto`. `.chart_inner_div` then stands the
+     pane up on its `min-height: 500px`, but the TradingView iframe — which the
+     widget sizes with an inline `height: 100%` — has nothing definite to
+     resolve against and falls back to the HTML default of 150px. A 150px chart
+     in a 500px pane is the ~350px of empty black. A definite height here
+     re-establishes the chain all the way down to the iframe.
+     330px = 56 navbar + 49 disclosure strip + ~103 market info + 50 tab row +
+     70 order bar, so the chart fills the gap between the tabs and Buy/Sell. */
+  .trade_wrapper_mobile .chart_wrapper {
+    height: calc(100vh - 330px);
+    min-height: 280px;
+  }
+
+  .trade_wrapper_mobile .chart_inner_div {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .market_pair_info.fixed {
+    position: relative;
+    width: 100%;
+    right: unset;
+    bottom: unset;
+    z-index: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .trade_wrapper {
+    grid-template:
+      "marketinfo   marketinfo " auto
+      "orderform   orderform "
+      "chart   chart " 300px
+      "orderbook   orderbook  "
+      "pair_crypto   pair_crypto "
+      "basictable   basictable " 285px;
+  }
+
+  /* Inside the mobile tab's fixed-height <Scrollbars>, so a definite height
+     is correct here - flex:1 has nothing to resolve against. `flex: none`
+     stops the desktop rule above from overriding it. */
+  .market_pair_info .table_box {
+    flex: none;
+    height: 364px;
+  }
+  .orderlist_container.show_sell .orderbook_list_container,
+  .orderlist_container.show_buy .orderbook_list_container {
+    height: 100%;
+  }
+  /* This asked for a two-up grid of stat cells, but 2 x (50% + 24px of margin)
+     plus the row's own 12px gap is wider than the track, so exactly one cell
+     fitted per line and the six stats became a 402px column inside a 60px bar.
+     The strip scrolls sideways instead (see the max-width: 767px block), so
+     the cells keep their natural width.
+       .ticker_list > div { width: calc(50% - 24px); margin: 8px 12px; }  */
+  .tickerprice_text {
+    font-size: 13px;
+  }
+}
+
+@media screen and (max-width: 575px) {
+  .history_table .order_tab > div {
+    margin: 0 10px 0 0 !important;
+  }
+
+  .ordertab {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+}
+
+.balanceContainer {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  align-items: center;
+}
+
+.right_top_future,
+.left_top_future {
+  font-size: 13px;
+  /* display: flex; */
+  align-items: center;
+}
+
+.right_top_future i,
+.left_top_future i {
+  font-size: 14px;
+}
+
+.ordertab .right_top_future,
+.ordertab .left_top_future {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 0;
+  /* color: var(--yellow); */
+}
+
+.buttonGroup {
+  display: flex;
+  justify-content: space-between;
+  max-width: 300px;
+  /* Set a maximum width for the button group */
+  margin: 0 auto;
+  /* Center the button group if needed */
+}
+
+.buttonGroup button {
+  flex: 1;
+  /* Make buttons take equal space */
+  margin: 0 2px;
+  /* Reduce space between buttons */
+  padding: 5px 10px;
+  /* Adjust padding for a smaller button size */
+  font-size: 12px;
+  /* Reduce font size for smaller buttons */
+}
+
+.typeText {
+  font-size: 0.9rem;
+  color: var(--text_white);
+  margin: 0;
+}
+
+/* Modal Content */
+.modal_content {
+  text-align: center;
+  /* color: white; */
+  /* Text color */
+  padding: 20px;
+}
+
+.modal_icon {
+  font-size: 50px;
+  /* Icon size */
+  margin-bottom: 15px;
+}
+
+.error_icon {
+  font-size: 50px;
+  /* Error icon size */
+  color: red;
+  /* Red color to signify error */
+}
+
+/* Modal.css */
+.modal_content p {
+  font-size: 12px;
+  /* color: #cccccc; */
+  /* Lighter gray text */
+  margin-bottom: 15px;
+}
+
+.modal_content h2 {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+/* Tabular numbers for aligned columns */
+.tabular_nums {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* ========================================
+   Recent Trades Flash Animations
+   ======================================== */
+
+/* A NEW PRINT ARRIVES LIT, AND FADES.
+   ===================================
+   The opacity ramp is the row's ENTRANCE. Rows that were already on the tape
+   slide down to make room (see the FLIP effect in RecentTrade.tsx), and
+   without an entrance the new row simply materialises at the top while
+   everything below glides - which reads as the tape stuttering rather than
+   advancing. The ramp is deliberately quick: it is there to say "this one is
+   new", not to delay reading it.
+
+   Only opacity and background here, never transform - transform belongs to
+   the slide, and a row is only ever doing one of the two.
+
+   The 450ms matches FLASH_MS in RecentTrade.tsx, which removes the class on a
+   timer. They have to agree, or the fade is cut off part-way. It is also
+   inside the server's 250ms publish throttle x2, so a print has finished
+   announcing itself before the next batch lands on top of it. */
+
+/* Flash animation for buy orders (green) */
+@keyframes tradeFlashBuy {
+  0% {
+    background-color: rgba(14, 203, 129, 0.32);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    background-color: transparent;
+    opacity: 1;
+  }
+}
+
+.tradeFlashBuy {
+  animation: tradeFlashBuy 450ms ease-out forwards;
+}
+
+/* Flash animation for sell orders (red) */
+@keyframes tradeFlashSell {
+  0% {
+    background-color: rgba(246, 70, 78, 0.32);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    background-color: transparent;
+    opacity: 1;
+  }
+}
+
+.tradeFlashSell {
+  animation: tradeFlashSell 450ms ease-out forwards;
+}
+
+/* The slide is skipped in JS for the same preference; this covers the entrance.
+   The row still lights and still fades, just not over time. */
+@media (prefers-reduced-motion: reduce) {
+  .tradeFlashBuy,
+  .tradeFlashSell {
+    animation-duration: 1ms;
+  }
+}
+
+/* ------------------------------------------------------------------
+   ORDER BOOK HEALTH STATE
+   Shown in place of the ladder when the published book says nothing can
+   fill. Calm on purpose — this is a paper-trading app, not an outage page.
+   ------------------------------------------------------------------ */
+.orderbook_status {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px 20px;
+  text-align: center;
+  min-height: 180px;
+}
+
+.orderbook_status_dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #9e9e9e;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.orderbook_status_dot_pulse {
+  background-color: #e6b800;
+  animation: orderbookStatusPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes orderbookStatusPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.orderbook_status_title {
+  color: var(--text_white);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.orderbook_status_detail {
+  color: #9e9e9e;
+  font-size: 12px;
+  line-height: 17px;
+  margin: 0;
+  max-width: 260px;
+}
+
+/* Inline explanation above a disabled Buy/Sell button. */
+.trade_paused_note {
+  color: #9e9e9e;
+  font-size: 12px;
+  line-height: 16px;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.order_buy_btn:disabled,
+.order_sell_btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.order_buy_btn:disabled:hover {
+  background-color: #0bba74;
+}
+
+.order_sell_btn:disabled:hover {
+  background-color: #ff7777;
+}
+
+/* ------------------------------------------------------------------
+   FEED FRESHNESS
+   The venue tick heartbeats every 30s per pair. When it stops, everything
+   ticker-derived on the page (mark price, 24H stats, chart, recent trades) is
+   frozen — so it says so instead of passing the last values off as current.
+   ------------------------------------------------------------------ */
+.feed_stale_badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border: 1px solid #e6b800;
+  border-radius: 10px;
+  color: #e6b800;
+  background-color: rgba(230, 184, 0, 0.08);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 16px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Values that are no longer updating read as history, not as the market. */
+.feed_stale_values {
+  opacity: 0.55;
+}
+
+/* Ribbon over the chart, which owns its own canvas and cannot be dimmed. */
+.chart_stale_overlay {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ================= Reference-matched order book ================= */
+.ob_tabs_row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 0;
+}
+.ob_tabs { display: flex; gap: 18px; }
+.ob_tab, .ob_tab_active {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 0 0 9px;
+  color: #848e9c;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s;
+}
+.ob_tab:hover { color: #b7bdc6; }
+.ob_tab_active {
+  color: #eaecef;
+  border-bottom-color: #0ecb81;
+}
+.ob_kebab {
+  background: none;
+  border: none;
+  color: #848e9c;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px 9px;
+}
+
+.ob_controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px 6px;
+}
+/* The two header controls (price grouping, size unit). One is a <button> and one
+   wraps a <select>, so BOTH need the user-agent chrome stripped - without the
+   reset the button rendered as a light grey box on the dark header. */
+.ob_dd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #848e9c;
+  font-size: 13px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  margin: 0;
+  /* ~24px tall: the smallest comfortable click target */
+  padding: 5px 7px;
+  border-radius: 4px;
+  font-family: inherit;
+  line-height: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: color 0.15s, background-color 0.15s;
+}
+.ob_dd:hover {
+  color: #eaecef;
+  background: rgba(255, 255, 255, 0.06);
+}
+/* Keyboard users get a visible target; pointer users never see it. */
+.ob_dd:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 1px;
+}
+
+/* Price-grouping control.
+   The pill lives on the <select> ITSELF, not on the wrapper: a wrapper can be
+   styled to look like a button but only the select element opens the menu, so
+   the padding and the chevron were dead zones and the control only responded on
+   the digits. The select now fills the pill, and the chevron floats above it
+   with pointer-events:none so a click on the arrow falls through to the select. */
+.ob_dd_group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: #848e9c;
+}
+.ob_dd_group .ob_dd_select {
+  border-radius: 4px;
+  /* right padding reserves the space the chevron is drawn over; the vertical
+     padding takes the target to ~24px, the smallest comfortable click area */
+  padding: 5px 18px 5px 7px;
+  line-height: 1;
+  transition: color 0.15s, background-color 0.15s;
+}
+/* Hover anywhere in the pill lights the digits and the chevron together. */
+.ob_dd_group:hover { color: #eaecef; }
+.ob_dd_group:hover .ob_dd_select {
+  color: #eaecef;
+  background: rgba(255, 255, 255, 0.06);
+}
+.ob_dd_group .ob_dd_select:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 1px;
+}
+.ob_dd_group .ob_dd_caret {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.ob_dd_caret { flex: none; display: block; opacity: 0.85; }
+.ob_dd_select {
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ob_dd_select option { background: #161a1e; color: #d4d7dd; }
+.ob_view_btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+}
+.ob_view_ask, .ob_view_bid {
+  width: 4px;
+  height: 13px;
+  border-radius: 1px;
+  display: inline-block;
+}
+.ob_view_ask { background: #f6465d; }
+.ob_view_bid { background: #0ecb81; }
+
+.ob_colhead, .ob_colhead_units {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  padding: 0 12px;
+  font-size: 11px;
+}
+.ob_colhead { color: #848e9c; padding-top: 6px; }
+.ob_colhead_units { color: #5b6371; padding: 1px 12px 6px; }
+
+.ob_row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  align-items: center;
+  /* fill the repeat(8,1fr) grid track (no fixed height, so the depth bar is a
+     contiguous fill, not 8 striped bars at tall panel sizes) */
+  height: 100%;
+  min-height: 20px;
+  /* 4px here + the reused .orderbook_list_container's 8px = 12px, matching the
+     column header's 12px inset so PRICE/SIZE/TOTAL sit over their numbers */
+  padding: 0 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.ob_row:hover { background: rgba(255, 255, 255, 0.04); }
+.ob_row_bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* THE GLIDE, AND THE CONDITION THAT MAKES IT WORK.
+     The bar's right edge is pinned, so this animates the left edge sweeping to
+     the new depth rather than the bar jumping to it.
+
+     It was removed once, for good reason: at the feed's ~10 ticks a second a
+     200ms animation was interrupted and restarted from wherever it had reached
+     on EVERY tick, so the bars perpetually chased targets they never met - the
+     stutter. The fix then was to snap. The fix now is that repaints are
+     throttled to BOOK_REPAINT_INTERVAL_MS (750ms, OrderBook.tsx), so 300ms
+     completes and the bar sits still for 450ms before the next frame.
+
+     KEEP THIS COMFORTABLY UNDER THAT INTERVAL. If they ever cross again the
+     stutter comes straight back.
+
+     EASING: easeOutCubic - a pronounced deceleration, not the softer `ease-out`
+     keyword. It is 58% of the way there by the quarter mark and settles to a
+     complete standstill, so the bar reads as arriving at its new depth rather
+     than drifting onto it. (An ease-IN was tried and reverted: it ends at ~2.9x
+     average speed, and eight bars rescaling together all lunged at once.) */
+  transition: width 300ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+/* The information is in the numbers; the motion is a nicety. */
+@media (prefers-reduced-motion: reduce) {
+  .ob_row_bar {
+    transition: none;
+  }
+}
+
+.ob_midrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+.ob_mid_label, .ob_spread_label { color: #848e9c; }
+.ob_mid_label b { color: #eaecef; font-weight: 600; }
+
+.ob_ratio {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 12px;
+  flex: 0 0 auto;
+}
+.ob_ratio_bid, .ob_ratio_ask {
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ob_ratio_bid { background: rgba(14, 203, 129, 0.18); color: #0ecb81; text-align: left; }
+.ob_ratio_ask { background: rgba(246, 70, 93, 0.18); color: #f6465d; text-align: right; }
+
+/* The Trades tab's host. Its sibling .orderbook_wrap_inner carries
+   `flex: 1 1 0%` and fills .orderbook_wrap with no dead space; this declared
+   only padding, so it computed `flex: 0 1 auto` and sat at its content height
+   while the panel below it stayed empty. */
+.ob_trades_host {
+  padding: 0;
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------------
+   ORDER BOOK - SIZE CHANGE FLASH
+   ------------------------------------------------------------------
+   A brief brightening of a row whose size just moved, the way a live
+   exchange book marks activity. Tinted to the SIDE - green on bids, red on
+   asks, at the same 0.30 alpha the trade flash uses - so the side is
+   unmistakable even at a glance. Each colour needs its own PAIR of keyframes
+   for the alternation below, hence four.
+
+   Two identical animations under different names, alternated by the row's
+   flashSeq parity. The rows are keyed by POSITION and so persist across
+   repaints; re-applying one class name would never re-trigger, and a
+   remount-by-key would throw away the depth bar with it.
+
+   450ms sits inside the 750ms repaint window (BOOK_REPAINT_INTERVAL_MS in
+   OrderBook.tsx), so a row that changes on every frame finishes one flash before
+   it can start the next - it pulses rather than smearing into a constant glow.
+   It runs alongside the 300ms width glide on the same row: same event, the glide
+   landing first and the flash fading out behind it.
+*/
+@keyframes obFlashBidA {
+  0% { background-color: rgba(14, 203, 129, 0.30); }
+  100% { background-color: transparent; }
+}
+@keyframes obFlashBidB {
+  0% { background-color: rgba(14, 203, 129, 0.30); }
+  100% { background-color: transparent; }
+}
+@keyframes obFlashAskA {
+  0% { background-color: rgba(246, 70, 93, 0.30); }
+  100% { background-color: transparent; }
+}
+@keyframes obFlashAskB {
+  0% { background-color: rgba(246, 70, 93, 0.30); }
+  100% { background-color: transparent; }
+}
+.ob_flash_bid_a { animation: obFlashBidA 450ms ease-out; }
+.ob_flash_bid_b { animation: obFlashBidB 450ms ease-out; }
+.ob_flash_ask_a { animation: obFlashAskA 450ms ease-out; }
+.ob_flash_ask_b { animation: obFlashAskB 450ms ease-out; }
+
+/* Respect a reduced-motion preference: the information is in the numbers. */
+@media (prefers-reduced-motion: reduce) {
+  .ob_flash_bid_a,
+  .ob_flash_bid_b,
+  .ob_flash_ask_a,
+  .ob_flash_ask_b { animation: none; }
+}
+
+/* ------------------------------------------------------------------
+   ORDER TICKET - THE TWO TAB ROWS
+   ------------------------------------------------------------------
+   Both rows share one mechanism: a 2px rule that slides between the halves
+   while the active label lights up. One element moves, which is what a
+   two-position selector actually is, instead of two halves lighting and
+   unlighting independently.
+
+   They differ only in COLOUR, and deliberately:
+
+     side (Buy/Sell)    green / red - the choice is DIRECTIONAL, and this is the
+                        one control on the page where a mis-glance costs money.
+                        Same #0ecb81 / #f6465d the order book uses, so a green
+                        here and a green there are the same green.
+
+     type (Limit/Market) neutral. It is a mode, not a direction, and colouring it
+                        green would rhyme with "buy" one row above it. Keeping it
+                        white also puts the two rows in the right order of
+                        importance at a glance.
+
+   Easing decelerates rather than `linear`, and the label colour runs on the same
+   duration as the slide so the whole gesture lands together - which the previous
+   wedge tabs did not do (their fill had no transition at all).
+*/
+.side_tabs,
+.type_tabs {
+  position: relative;
+  display: flex;
+  height: 36px;
+  border-bottom: 1px solid #232c37;
+}
+.side_tabs {
+  margin: 10px 10px 0;
+}
+/* sits inside .ordertab, whose 10px padding already provides the inset */
+.type_tabs {
+  margin: 0;
+  height: 34px;
+}
+
+.side_tab,
+.type_tab {
+  flex: 1;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1;
+  color: #848e9c;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.side_tab {
+  font-size: 15px;
+}
+/* a shade smaller than the side row: the side is the weightier choice */
+.type_tab {
+  font-size: 14px;
+}
+.side_tab:hover,
+.type_tab:hover {
+  color: #b7bdc6;
+}
+/* These are real <button>s now, so they are focusable - which the <li onClick>
+   and the react-bootstrap <a> pills never gave a visible state for. */
+.side_tab:focus-visible,
+.type_tab:focus-visible {
+  outline: 2px solid #1c93ff;
+  outline-offset: -3px;
+  border-radius: 4px;
+}
+
+.side_tabs_rule,
+.type_tabs_rule {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  width: 50%;
+  border-radius: 2px;
+  transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1),
+    background 0.2s ease;
+}
+
+/* --- side: directional colour --- */
+.side_tabs_rule {
+  background: #0ecb81;
+}
+.side_tabs[data-side="sell"] .side_tabs_rule {
+  transform: translateX(100%);
+  background: #f6465d;
+}
+.side_tabs[data-side="buy"] [data-side-tab="buy"] {
+  color: #0ecb81;
+}
+.side_tabs[data-side="sell"] [data-side-tab="sell"] {
+  color: #f6465d;
+}
+
+/* --- type: neutral --- */
+.type_tabs_rule {
+  background: #eaecef;
+}
+.type_tabs[data-type="market"] .type_tabs_rule {
+  transform: translateX(100%);
+}
+.type_tabs[data-type="limit"] [data-type-tab="limit"],
+.type_tabs[data-type="market"] [data-type-tab="market"] {
+  color: #eaecef;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side_tab,
+  .type_tab,
+  .side_tabs_rule,
+  .type_tabs_rule {
+    transition: none;
+  }
+}
+
+
+/*
+ * THE TWO ROWS A MARKET TICKET WAS MISSING.
+ *
+ * The limit ticket computes a Total from what you type, so a figure there has a
+ * visible consequence. The market ticket computed nothing - you entered a
+ * number and the form said nothing about what it buys - so it gains the same
+ * feedback in the form a market order can honestly give: an ESTIMATE, and a way
+ * to spend a share of the balance without doing arithmetic against it.
+ */
+.pct_row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pct_btn {
+  padding: 5px 0;
+  background: transparent;
+  border: 1px solid var(--box_border);
+  border-radius: 6px;
+  color: var(--text_grey);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.pct_btn:hover:not(:disabled) {
+  border-color: #1d94ff;
+  color: #1d94ff;
+  background: rgba(29, 148, 255, 0.08);
+}
+
+.pct_btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Deliberately quiet: it is orientation, not a quote, and it sits directly
+   above the button that commits. */
+.est_line {
+  margin: 8px 0 0;
+  color: var(--text_grey);
+  font-size: 12px;
+}

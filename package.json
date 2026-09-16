@@ -1,0 +1,15 @@
+{
+  "name": "cryptodex",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cryptodex — a spot-only paper-trading exchange. This manifest is the repository root only; each of the four services under cryptodex-* carries its own package.json and its own node_modules, and that is where dependencies are declared and installed.",
+  "engines": {
+    "node": ">=18.12"
+  },
+  "scripts": {
+    "seed": "node ops/reset-and-seed.mjs",
+    "start": "./start-all.sh",
+    "stop": "./stop-all.sh",
+    "smoke": "npm --prefix system-smoke-test test"
+  }
+}

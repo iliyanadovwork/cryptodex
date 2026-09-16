@@ -1,0 +1,191 @@
+%% Cryptodex - data model. Entities are named by COLLECTION, not by JS model alias.
+%% Three databases: cryptodex_user | cryptodex_wallet | cryptodex_spot
+%% No cross-database FK is enforced by anything; every one is id-by-convention.
+erDiagram
+    user ||--o| usersetting : "userId"
+    user ||--o{ notification : "userId"
+    user ||--o{ adminProfitHistory : "userId"
+    user ||--|| wallet : "wallet._id IS user._id - cross-db"
+    usersetting }o--|| language : "languageId"
+
+    wallet ||--o{ assets : "embedded array"
+    assets }o--|| currency : "currencyId"
+    wallet ||--o{ transaction : "userId"
+    wallet ||--o{ passbook : "userId"
+    currency ||--o{ priceconversion : "baseSymbol, convertSymbol"
+
+    spotpair }o--|| currency : "firstCurrencyId - cross-db"
+    spotpair }o--|| currency : "secondCurrencyId - cross-db"
+    spotpair ||--o{ spotOrder : "pairId"
+    spotpair ||--o{ orderHistory : "pairId"
+    spotpair ||--o{ tradeHistory : "pairId"
+    spotpair ||--o{ favouritepair : "pairId"
+
+    user ||--o{ spotOrder : "userId - cross-db"
+    user ||--o{ orderHistory : "userId - cross-db"
+    user ||--o{ tradeHistory : "buyUserId and sellUserId - cross-db"
+    user ||--o{ depositEvent : "userId - cross-db"
+
+    user {
+        ObjectId _id PK
+        string userId UK "human code"
+        string email UK "required is commented out"
+        string hash "pbkdf2 via password virtual"
+        string salt
+        string emailStatus "unverified by default"
+        string userLocked "a String, not Boolean"
+        string role
+    }
+
+    wallet {
+        ObjectId _id PK "equals user._id"
+        string userCode UK "derived from _id, lossy"
+        boolean frozen "stand-down flag"
+        date frozenAt
+        string frozenReason
+    }
+
+    assets {
+        ObjectId _id PK
+        ObjectId currencyId FK
+        string coin
+        number spotBal "diverges from Redis by design"
+        number spotLockedBal
+        number spotInOrder
+    }
+
+    currency {
+        ObjectId _id PK
+        string coin
+        string symbol
+        string type "crypto or fiat"
+        number decimals
+        string status
+    }
+
+    spotpair {
+        ObjectId _id PK
+        string tikerRoot "BTCUSD"
+        ObjectId firstCurrencyId FK
+        ObjectId secondCurrencyId FK
+        string botstatus "binance drives the live feed"
+        string status "active or delisted"
+        number markPrice "overwritten by each fill"
+        number firstFloatDigit
+        number secondFloatDigit
+    }
+
+    spotOrder {
+        ObjectId _id PK "hand-built hex, not a real ObjectId"
+        ObjectId userId FK
+        ObjectId pairId FK
+        string buyorsell
+        string orderType "limit or market only"
+        number price
+        number quantity
+        number filledQuantity
+        string liquidityType "hard-coded off"
+        string status
+    }
+
+    orderHistory {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId pairId FK
+        string orderCode "from sequenceId"
+        string liquidityRole "maker or taker"
+        boolean isPaper "synthetic ladder row"
+        string status
+    }
+
+    tradeHistory {
+        ObjectId _id PK
+        ObjectId pairId FK
+        ObjectId buyUserId FK
+        ObjectId sellUserId FK
+        number price
+        number filledQuantity
+        number Fees "always zero on this venue"
+    }
+
+    transaction {
+        ObjectId _id PK
+        ObjectId userId FK
+        string paymentType
+        number amount
+    }
+
+    passbook {
+        ObjectId _id PK
+        ObjectId userId FK
+        string tableId "points at a spot row by convention"
+        number beforeBalance
+        number afterBalance
+    }
+
+    priceconversion {
+        ObjectId _id PK
+        string baseSymbol
+        string convertSymbol
+        string convertPrice
+        string fetchFrom "off routes to CryptoCompare"
+    }
+
+    depositEvent {
+        ObjectId _id PK
+        ObjectId userId FK
+        string signature UK "faucet idempotency key"
+        number amount
+    }
+
+    favouritepair {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId pairId FK
+    }
+
+    sequenceId {
+        ObjectId _id PK
+        string type "orderHistory"
+        number seq "seeded at 10e10"
+    }
+
+    usersetting {
+        ObjectId _id PK
+        ObjectId userId FK
+        ObjectId languageId FK
+        string defaultWallet "enum kept for safety"
+    }
+
+    notification {
+        ObjectId _id PK
+        ObjectId userId FK
+        string title
+        boolean noti_view_status
+    }
+
+    emailtemplate {
+        ObjectId _id PK
+        string identifier "lookup key, not indexed"
+        string langCode
+        string content
+    }
+
+    sitesetting {
+        ObjectId _id PK
+        string siteName
+        string supportMail
+    }
+
+    language {
+        ObjectId _id PK
+        string code UK
+        string status
+    }
+
+    adminProfitHistory {
+        ObjectId _id PK
+        ObjectId userId FK
+        number fee "always zero"
+        string tableId
+    }

@@ -1,0 +1,79 @@
+%% walletapi - internal components (balances and currency metadata)
+%% Shapes: [ ] module we own | [( )] datastore | ([ ]) external system
+%% Arrows: solid = synchronous in-process call | dotted = async / scheduled
+flowchart TB
+    gwin["gateway<br/>/api/wallet, /api/currency, /api/common, /currency"]
+
+    subgraph entry["Entry points"]
+        walletroute["routes/wallet.route.js<br/>4 live endpoints"]
+        commonroute["routes/currency.route.js + common.route.js<br/>3 public reads"]
+        healthroute["routes/health.route.js"]
+        statics["express.static public/<br/>coin icons at /currency/*"]
+        grpcsrv["grpc/server.js<br/>wallet 9, currency 3, news"]
+        cronreg["config/cron.js<br/>5 min price conversion"]
+    end
+
+    subgraph guards["Guards"]
+        pass["config/passport.js<br/>JWT + Redis session recheck"]
+        frozen["blockFrozenWallet<br/>Wallet.frozen + standdown mark"]
+        flight["controllers/valueFlightGuard.js"]
+    end
+
+    subgraph domain["Domain"]
+        walletctrl["controllers/wallet.controller.js<br/>getWallet, getAsset, history"]
+        createasset["controllers/createAsset.js<br/>demo grant on registration"]
+        currencyctrl["controllers/currency.controller.js"]
+        pricecnv["controllers/priceCNV.controller.js<br/>FX table builder"]
+        healthctrl["controllers/health.controller.js<br/>probes + grpc.bound"]
+    end
+
+    subgraph dormant["Dormant - imported at boot, never called"]
+        gateways["controllers/coin/*Gateway.js<br/>7 paper stubs"]
+        fireblocks["controllers/coin/firebase.js<br/>Fireblocks stub"]
+    end
+
+    subgraph data["Data access"]
+        redisctrl["controllers/redis.controller.js"]
+        models["models/<br/>Wallet, Currency, Transaction"]
+    end
+
+    redis[("Redis<br/>walletbalance_spot*")]
+    mongo[("MongoDB _wallet")]
+    binance(["Binance REST prices"])
+    cryptocompare(["CryptoCompare"])
+    userapi(["userapi"])
+
+    gwin -->|"HTTP"| walletroute
+    gwin -->|"HTTP"| commonroute
+    gwin -->|"HTTP"| healthroute
+    gwin -->|"HTTP - coin icons"| statics
+
+    walletroute -->|"per-endpoint guard"| pass
+    pass --> frozen
+    frozen --> flight
+    flight --> walletctrl
+    pass -->|"read routes skip frozen guard"| walletctrl
+    commonroute --> currencyctrl
+    commonroute --> pricecnv
+    healthroute --> healthctrl
+
+    grpcsrv -->|"newAsset from userapi register"| createasset
+    grpcsrv -->|"getUserAsset, updateUserAsset, passbook"| walletctrl
+    createasset --> models
+    createasset --> redisctrl
+
+    cronreg -.->|"cron 5 min"| pricecnv
+    pricecnv -->|"HTTPS - SDK prices"| binance
+    pricecnv -.->|"HTTPS - fetchFrom off rows"| cryptocompare
+    pricecnv --> redisctrl
+
+    walletctrl -->|"HSETNX seed then read"| redisctrl
+    walletctrl --> models
+    currencyctrl --> models
+    redisctrl -->|"RESP"| redis
+    models -->|"Mongoose"| mongo
+
+    walletctrl -.->|"gRPC - fetchUser, sendMail"| userapi
+
+    walletctrl -.->|"module-scope import only"| gateways
+    walletctrl -.->|"module-scope import only"| fireblocks

@@ -1,0 +1,136 @@
+# =============================================================================
+# CRYPTODEX - the whole venue on one host.
+# =============================================================================
+#
+#   docker compose -f deploy/docker-compose.yml up -d
+#
+# FOUR CONTAINERS, ONE MACHINE, AND WHY THAT IS THE RIGHT SHAPE HERE
+#
+# `app` is the backend image built from deploy/Dockerfile: userapi, walletapi and
+# spotapi under deploy/supervisor.mjs, with deploy/gateway.mjs in front of them on
+# one port. That arrangement is explained in the Dockerfile and has not changed.
+# What changed is what surrounds it.
+#
+# mongo and redis are siblings here rather than managed services. The managed
+# equivalents on AWS are DocumentDB and ElastiCache, and each one costs several
+# times the price of the instance all four of these run on. For a paper-trading
+# venue with one market and no real money, paying database-cluster prices to hold
+# virtual balances is not a trade worth making. The cost is that this host is a
+# single point of failure: lose the instance and you lose the venue until it comes
+# back. Nightly EBS snapshots are the answer to that, not a second availability
+# zone.
+#
+# caddy is the only container that publishes a port. It terminates TLS, renews the
+# certificate itself, and reverse-proxies to `app` over the compose network. `app`
+# publishes nothing, so the backend is not reachable from the internet except
+# through Caddy. Same for mongo and redis: no ports section at all, which is the
+# whole point. A Mongo instance with 27017 open to the world is found by scanners
+# within the hour.
+#
+# WEBSOCKETS. socket.io upgrades to a raw WebSocket, and that upgrade has to
+# survive two hops: Caddy to app, then gateway.mjs to spotapi. Caddy proxies
+# upgrades transparently by default, and gateway.mjs handles its own 'upgrade'
+# event, so neither needs configuration. If the browser ends up stuck on the
+# polling transport, that is the thing to check first.
+#
+# RESTART POLICY. `unless-stopped` rather than `always`, so a deliberate stop
+# stays stopped across a daemon restart.
+# =============================================================================
+
+name: cryptodex
+
+services:
+  app:
+    image: ${ECR_IMAGE:-cryptodex-backend:local}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    # Written on the instance at boot from SSM Parameter Store, mode 600, and never
+    # committed. Marked not-required so `compose config` and a local build still work
+    # on a machine that has no .env at all.
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      PORT: 8080
+      # Siblings on the compose network, addressed by service name.
+      MONGO_URL: mongodb://mongo:27017/cryptodex
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mongo: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    # No `ports`. Caddy is the only way in.
+    expose: ["8080"]
+    healthcheck:
+      # The gateway answers 200 only when all three services do, so this is a
+      # real liveness probe for the venue rather than for one process.
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:8080/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    logging: &logging
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    # wiredTigerCacheSizeGB is capped because Mongo's default is half of RAM, and
+    # on a 2 GB instance shared with three Node processes, Redis and Caddy that
+    # default is what gets the whole box OOM-killed.
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
+    volumes: ["mongo-data:/data/db"]
+    expose: ["27017"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # The README calls Redis the ledger of record for live trading, so this is
+    # configured as a database and not as a cache:
+    #   appendonly        - survive a restart; RDB snapshots alone lose writes
+    #   appendfsync everysec - at most one second of trades lost on a hard kill
+    #   noeviction        - a full Redis must FAIL writes loudly. Any eviction
+    #                       policy would silently discard ledger entries, which
+    #                       for a ledger is worse than an outage.
+    command:
+      ["redis-server",
+       "--appendonly", "yes",
+       "--appendfsync", "everysec",
+       "--maxmemory", "192mb",
+       "--maxmemory-policy", "noeviction"]
+    volumes: ["redis-data:/data"]
+    expose: ["6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data      # certificates and ACME state; losing this re-issues
+      - caddy-config:/config
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    depends_on: [app]
+    logging: *logging
+
+volumes:
+  mongo-data:
+  redis-data:
+  caddy-data:
+  caddy-config:

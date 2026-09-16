@@ -1,0 +1,94 @@
+%% spotapi - internal components (the trading engine)
+%% Shapes: [ ] module we own | [( )] datastore | ([ ]) external system
+%% Arrows: solid = synchronous in-process call | dotted = async / scheduled / streaming
+flowchart TB
+    gwin["gateway<br/>/api/spot, /api/dashboard, /socket.io"]
+
+    subgraph entry["Entry points"]
+        route["routes/spot.route.js<br/>20 endpoints, mounted twice"]
+        sock["config/socketIO.js + socketAuth.js<br/>socket.io server"]
+        cronreg["config/cron.js + in-controller cron<br/>13 + 1 schedules"]
+    end
+
+    subgraph guards["Guards and validation"]
+        pass["config/passport.js<br/>JWT + Redis session recheck"]
+        standdown["controllers/standDownState.js<br/>freeze gate"]
+        flight["controllers/valueFlightGuard.js<br/>reset-exclusion registry"]
+    end
+
+    subgraph domain["Domain"]
+        matcher["controllers/spot.controller.js<br/>order entry + matcher + settlement"]
+        paperbook["controllers/paperBook.controller.js<br/>builds the synthetic ladder"]
+        publish["controllers/bookPublish.controller.js<br/>the one orderBook publisher"]
+        faucet["controllers/faucet.controller.js<br/>the only source of money"]
+        canary["controllers/fillCanary.js<br/>zero-write shadow fill"]
+        chart["controllers/chart/chart.controller.js<br/>TradingView UDF datafeed"]
+    end
+
+    subgraph policy["Policy and ledger"]
+        gate["lib/orderGate.js<br/>assertOrderTradable"]
+        health["lib/depthHealth.js + lib/depthSource.js<br/>one verdict, one snapshot"]
+        ledger["controllers/paperLedger.js<br/>sanctioned balance mutator"]
+        lua["controllers/redis.controller.js<br/>Lua: reserve, claim, freeze"]
+    end
+
+    subgraph ext["External clients"]
+        binws["lib/binanceWebSocket.js<br/>depth + aggTrade streams"]
+        binrest["controllers/binance.controller.js<br/>REST ticker, klines, aggTrades"]
+        grpcw["grpc/walletService.js<br/>+ walletStandDownService.js"]
+    end
+
+    redis[("Redis<br/>balances, book, depth mirror")]
+    mspot[("MongoDB _spot")]
+    mwallet[("MongoDB _wallet<br/>2nd connection")]
+    binance(["Binance public API"])
+    walletapi(["walletapi"])
+
+    gwin -->|"HTTP"| route
+    gwin -->|"WebSocket upgrade"| sock
+
+    route -->|"middleware chain"| pass
+    pass --> standdown
+    standdown --> flight
+    flight -->|"orderPlace, cancelOrder"| matcher
+    flight -->|"claim, reset"| faucet
+    route -->|"GET /chart/:config"| chart
+    route -->|"GET /health"| canary
+
+    cronreg -.->|"cron 2s - matchingcall"| matcher
+    cronreg -.->|"cron 30s / 60s"| binrest
+
+    matcher -->|"await syncPaperBook at tick top"| paperbook
+    matcher -->|"assertOrderTradable"| gate
+    matcher -->|"credit / debit"| ledger
+    matcher -->|"reserve, hgetdel"| lua
+    faucet --> ledger
+    faucet --> lua
+
+    gate --> health
+    paperbook --> health
+    publish --> health
+    canary --> health
+
+    paperbook -->|"hset ladder rows"| redis
+    lua -->|"RESP - EVAL"| redis
+    ledger -->|"RESP"| redis
+    ledger -.->|"gRPC - updateUserAsset"| grpcw
+    matcher -->|"gRPC - getUserAsset, passbook"| grpcw
+    standdown -->|"gRPC - deactivateWallet check"| grpcw
+    grpcw -->|"gRPC insecure - 127.0.0.1:6002"| walletapi
+
+    matcher -->|"Mongoose"| mspot
+    chart -->|"Mongoose"| mspot
+    matcher -->|"Mongoose - currency lookup"| mwallet
+
+    binance -.->|"WebSocket - depth@100ms, aggTrade"| binws
+    binws -->|"HTTPS - REST snapshot"| binance
+    binrest -->|"HTTPS - REST"| binance
+    chart -->|"HTTPS - SDK candlesticks"| binance
+
+    binws -.->|"depth callback ~100ms + 1s heartbeat"| publish
+    binws -->|"mirror depth"| redis
+    publish -.->|"socketEmitAll - broadcast"| sock
+    matcher -.->|"socketEmitOne - private room"| sock
+    sock -.->|"WebSocket frames"| gwin

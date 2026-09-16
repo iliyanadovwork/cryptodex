@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+service Req {
+    rpc fetchAdmin (fetchAdminReq) returns (fetchAdminRes) {}
+ rpc saveAdminprofit (saveAdminprofitReq) returns (saveAdminprofitRes) {}
+}
+
+message fetchAdminReq {
+    string id = 1;
+}
+
+message Google2Fa {
+    string secret = 1;
+    string uri = 2;
+}
+
+message fetchAdminRes {
+    string _id = 1;
+    string role = 2;
+    bool isAuth = 3;
+    Google2Fa google2Fa = 4;
+}
+
+message saveAdminprofitReq  {
+    string userId = 1;
+    string pair = 2;
+    string coin = 3;
+    float fee = 4;
+    string ordertype = 5; 
+
+}
+message saveAdminprofitRes {
+    bool status = 1;
+}
+
+
+message Empty {}

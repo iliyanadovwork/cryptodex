@@ -1,0 +1,106 @@
+# =============================================================================
+# WHAT MUST NOT ENTER THE IMAGE
+# =============================================================================
+# A build context is copied wholesale before any COPY runs, and anything a layer
+# captures is permanent: it survives `docker rm`, it is pushed to the registry,
+# and it cannot be un-set by editing an environment variable. So the env files -
+# which in this repository are committed and contain live-looking
+# credentials - are excluded here, first, by name.
+#
+# deploy/Dockerfile ALSO deletes them in a RUN step. That is deliberate
+# duplication: this file is the mechanism, that step is the assertion, and the
+# assertion catches the case where this file is stale or the build is run from a
+# different context.
+
+# ---- credentials and configuration ------------------------------------------
+# Every service is started with dotenv_config_path=local.env (dev.env / prod.env
+# are the other two names in use). NONE of them belongs in an image: in
+# production the configuration comes from Railway's environment variables.
+*.env
+**/*.env
+.env
+.env.*
+**/.env
+**/.env.*
+# The templates are documentation, not configuration, but the image does not
+# need documentation either.
+*.env.example
+**/*.env.example
+
+# Key material. .gitignore already blocks these from git; block them from the
+# build context too, so a key sitting untracked in a working tree cannot be
+# baked into a layer.
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+private/
+
+# ---- things that would make the image enormous or wrong ---------------------
+# node_modules is installed inside the builder for the right platform. Copying
+# the developer's macOS/arm64 tree in would ship native modules compiled for the
+# wrong OS.
+node_modules
+**/node_modules
+
+.git
+.gitignore
+**/.DS_Store
+
+# Local database and cache state - gigabytes of it, and none of it is the app.
+mongodb-data*/
+**/mongodb-data*/
+dump.rdb
+**/dump.rdb
+*.rdb
+appendonly.aof
+mongodb.log*
+**/mongodb.log*
+
+# Logs
+*.log
+**/*.log
+logs/
+
+# ---- not part of the backend ------------------------------------------------
+# The frontend is a separate Railway service (a Next.js app); this image is the
+# three backends only.
+cryptodex-frontend/
+advanced-charts/
+system-smoke-test/
+
+# Tests, coverage and build output. The runtime never reads them.
+**/tests/
+**/__tests__/
+**/coverage/
+**/.next/
+**/dist/
+**/build/
+**/playwright-report/
+**/test-results/
+**/jest.config.js
+**/jest.setup.js
+**/babel.config.js
+**/.babelrc
+
+# Local tooling that is not the deployed app
+start-all.sh
+stop-all.sh
+.claude/
+
+# NOTE ON ops/ - it is deliberately NOT excluded.
+# ops/reset-and-seed.mjs is how a venue is brought from nothing to something
+# that can fill an order (it is the only thing that writes redis
+# admin_liquidity/liquidation, without which spot cannot fill at all). Keeping
+# it in the image means the production databases can be seeded with
+# `railway run --service backend node ops/reset-and-seed.mjs`, from inside the
+# private network - instead of having to expose Mongo and Redis to the public
+# internet just to run a one-off script. It resolves its mongodb/redis drivers
+# out of userapi/node_modules, which the image already has.
+# Its own scratch data is excluded by the rules above; what is left is ~100 KB.

@@ -1,0 +1,17 @@
+<svg width="40.000000" height="40.000000" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<clipPath id="clip0_192">
+			<rect id="heroicons-outline/shield-check" width="40.000000" height="40.000000" transform="translate(-0.666626 0.000000)" fill="white" fill-opacity="0"/>
+		</clipPath>
+		<linearGradient x1="19.333370" y1="4.523438" x2="19.333370" y2="35.619675" id="paint_linear_0_193_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#EAB486"/>
+			<stop offset="1.000000" stop-color="#FFFFFF"/>
+		</linearGradient>
+	</defs>
+	<g clip-path="url(#clip0_192)">
+		<path id="Vector" d="M5.58 9.99C5.49 9.99 5.41 9.99 5.32 9.99C4.68 11.96 4.33 14.06 4.33 16.24C4.33 25.56 10.7 33.39 19.33 35.61C27.95 33.39 34.33 25.56 34.33 16.24C34.33 14.06 33.98 11.96 33.33 9.99C33.25 9.99 33.16 9.99 33.08 9.99C27.75 9.99 22.91 7.91 19.33 4.52C15.74 7.91 10.9 9.99 5.58 9.99ZM14.33 21.24L18.08 24.99L24.33 16.24" stroke="url(#paint_linear_0_193_0)" stroke-opacity="1.000000" stroke-width="1.500000" stroke-linejoin="round" stroke-linecap="round"/>
+	</g>
+</svg>

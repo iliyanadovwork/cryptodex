@@ -1,0 +1,66 @@
+%% Flow: register an account, provision its wallet, activate by email, then log in.
+%% Solid arrow = synchronous call. Dashed arrow = return, async or fire-and-forget.
+sequenceDiagram
+    autonumber
+    actor T as Trader browser
+    participant GW as deploy/gateway.mjs
+    participant AR as routes/auth.route.js
+    participant AC as auth.controller.js
+    participant UM as models/User.js
+    participant MU as MongoDB _user
+    participant WG as grpc/walletService.js
+    participant WA as walletapi createAsset.js
+    participant MW as MongoDB _wallet
+    participant RD as Redis
+    participant RS as Resend API
+
+    Note over T,RS: REGISTRATION
+
+    T->>GW: POST /api/auth/register email, password, confirmPassword, roleType 1
+    GW->>AR: forwarded to userapi
+    AR->>AR: registerValidate - regex, length 8-18, confirm match
+    AR->>AC: createNewUser
+    AC->>MU: findOne by lowercased email
+    alt verified duplicate
+        AC-->>T: 400 Email already exists
+    else unverified duplicate older than 24h
+        AC->>MU: delete stale user and its UserSetting, continue
+    else unverified duplicate younger than 24h
+        AC-->>T: 400 wait N hours
+    end
+    AC->>UM: set password virtual
+    UM->>UM: makeSalt then pbkdf2 sha512, 100000 iters, 128 bytes
+    AC->>MU: save user - userId and refferalCode from IncCntObjId
+    AC-->>MU: defaultUserSetting - not awaited, errors swallowed
+
+    Note over T,RS: WALLET PROVISIONING - fire and forget on BOTH sides
+
+    AC-->>WG: newAsset userId, userCode - NOT awaited
+    WG->>WA: gRPC NewAsset
+    WA-->>WG: status true returned BEFORE the wallet exists
+    WA->>MW: create wallet with _id = user._id
+    WA->>MW: push assets for DEMO_SEED_COINS USD, spotBal 1000
+    WA->>RD: hset walletbalance_spot userId_currencyId 1000
+    WA->>RD: updateUserWallet - HSETNX hydrate, never overwrite
+
+    Note over T,RS: ACTIVATION
+
+    AC-->>RS: mailTemplateLang activate_register_user - NOT awaited
+    RS-->>T: email with FRONT_URL /verification/register?auth=token
+    T->>GW: POST /api/auth/confirm-mail with mailToken
+    GW->>AC: confirmMail
+    AC->>MU: match mailToken, flip emailStatus to verified
+
+    Note over T,RS: LOGIN
+
+    T->>GW: POST /api/auth/login
+    GW->>AC: userLogin
+    AC->>UM: authenticate - re-derive pbkdf2, plain string compare
+    alt TEST_MODE is true
+        AC->>AC: skip OTP entirely
+    else normal
+        AC-->>RS: email a six digit login code
+    end
+    AC->>AC: sign JWT with SECRET_KEY, embed tokenId
+    AC->>RD: hset userToken row with tokenId - revokes prior session
+    AC-->>T: token, stored in 4 places by the browser

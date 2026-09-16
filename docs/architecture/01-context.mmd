@@ -1,0 +1,37 @@
+%% Cryptodex - System Context
+%% Shapes: [ ] process we own | [( )] datastore | ([ ]) external system | (( )) human actor
+%% Arrows: solid = synchronous | dotted = async / streaming / scheduled
+flowchart TB
+    trader(("Trader<br/>browser"))
+
+    subgraph venue["Cryptodex - paper-trading spot venue"]
+        system["Cryptodex<br/>web app + 3 backend services"]
+    end
+
+    mongo[("MongoDB<br/>3 databases")]
+    redis[("Redis<br/>authoritative balances")]
+
+    binmd(["Binance public market data<br/>unauthenticated"])
+    bintrade(["Binance authenticated trading<br/>DORMANT - unreachable"])
+    resend(["Resend<br/>transactional email"])
+    cryptocompare(["CryptoCompare<br/>FX price API"])
+    tvembed(["TradingView<br/>ticker-tape embed"])
+    railway(["Railway<br/>build + run platform"])
+
+    trader -->|"HTTPS - REST/JSON"| system
+    trader -->|"WebSocket - socket.io"| system
+    trader -->|"HTTPS - loads embed script"| tvembed
+
+    system -->|"TCP - MongoDB wire protocol"| mongo
+    system -->|"TCP - RESP"| redis
+
+    binmd -.->|"WebSocket - depth@100ms, aggTrade"| system
+    system -->|"HTTPS - REST snapshot, ticker, klines"| binmd
+    system -->|"HTTPS - REST prices"| binmd
+
+    system -->|"HTTPS - POST /emails"| resend
+    system -.->|"HTTPS - 5 min cron"| cryptocompare
+
+    system -.->|"HTTPS - order, cancelOrder, getOrder"| bintrade
+
+    railway -.->|"injects PORT, MONGO_URL, REDIS_URL"| system
